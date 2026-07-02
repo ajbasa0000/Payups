@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}Contract Repository - PayUPS{% endblock %}
+{% block page_title %}Contract Repository (Digital Registry){% endblock %}
+
+{% block content %}
+<div class="container-card">
+    <div class="card-header">
+        <h3 class="card-title">Approved Contracts Registry (Filtered by Department)</h3>
+        {% if request.user.profile.role == 'UNIT_AO' or request.user.profile.role == 'UNIT_HEAD' or request.user.is_superuser %}
+        <a href="{% url 'employee_create' %}" class="btn btn-primary">+ Add Contract</a>
+        {% endif %}
+    </div>
+    
+    <!-- Search & Filter Panel -->
+    <div style="padding: 1.25rem; border-bottom: 1px solid var(--border-color); background-color: var(--bg-slate);">
+        <form method="get" action="" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+            <div style="flex: 2; min-width: 250px; display: flex; flex-direction: column; gap: 0.25rem;">
+                <label class="form-label" style="font-weight: 700; font-size: 0.8rem; color: var(--text-secondary);">Search Contracts</label>
+                <input type="text" name="q" class="form-control" placeholder="Search by employee name or designation..." value="{{ q }}" style="padding: 0.6rem; border-color: var(--border-color);">
+            </div>
+            
+            {% if is_global %}
+            <div style="flex: 1.5; min-width: 220px; display: flex; flex-direction: column; gap: 0.25rem;">
+                <label class="form-label" style="font-weight: 700; font-size: 0.8rem; color: var(--text-secondary);">Filter Department</label>
+                <select name="dept" class="form-control" style="padding: 0.6rem; border-color: var(--border-color);">
+                    <option value="">-- All Departments --</option>
+                    {% for choice in departments %}
+                    <option value="{{ choice.0 }}" {% if selected_dept == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <div style="flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 0.25rem;">
+                <label class="form-label" style="font-weight: 700; font-size: 0.8rem; color: var(--text-secondary);">Engagement Type</label>
+                <select name="engagement" class="form-control" style="padding: 0.6rem; border-color: var(--border-color);">
+                    <option value="">-- All Types --</option>
+                    <option value="MONTHLY" {% if selected_eng == 'MONTHLY' %}selected{% endif %}>Monthly Rate COS</option>
+                    <option value="DAILY" {% if selected_eng == 'DAILY' %}selected{% endif %}>Daily Rate COS</option>
+                </select>
+            </div>
+
+            <div style="flex: 0.8; min-width: 120px; display: flex; flex-direction: column; gap: 0.25rem;">
+                <label class="form-label" style="font-weight: 700; font-size: 0.8rem; color: var(--text-secondary);">Filter Year</label>
+                <select name="year" class="form-control" style="padding: 0.6rem; border-color: var(--border-color);">
+                    <option value="">-- All Years --</option>
+                    {% for y in years %}
+                    <option value="{{ y }}" {% if selected_year == y|stringformat:"i" %}selected{% endif %}>{{ y }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem;">
+                <button type="submit" class="btn btn-primary" style="padding: 0.65rem 1.5rem;">Filter</button>
+                <a href="{% url 'contracts_list' %}" class="btn btn-secondary" style="padding: 0.65rem 1.25rem;">Reset</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="card-body" style="padding: 0;">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Employee Name</th>
+                    <th>Designation</th>
+                    <th>Engagement Type</th>
+                    <th>Monthly Rate</th>
+                    <th>Daily Rate</th>
+                    <th>Validity Period</th>
+                    <th>DTR / TOR Status</th>
+                    <th style="text-align: center; width: 120px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for contract in contracts %}
+                <tr>
+                    <td><strong>{{ contract.employee.name }}</strong></td>
+                    <td>{{ contract.designation }}</td>
+                    <td>
+                        <span class="badge {% if contract.rate_type == 'DAILY' %}badge-pending{% else %}badge-approved{% endif %}">
+                            {{ contract.get_rate_type_display }}
+                        </span>
+                    </td>
+                    <td>PhP {{ contract.monthly_rate }}</td>
+                    <td>PhP {{ contract.daily_rate }}</td>
+                    <td>{{ contract.start_date|date:"M d, Y" }} - {{ contract.end_date|date:"M d, Y" }}</td>
+                    <td>
+                        <span class="badge badge-approved" style="font-size: 0.75rem;">✓ Active & Validated</span>
+                    </td>
+                    <td style="text-align: center; display: flex; flex-direction: column; gap: 0.25rem; align-items: center; justify-content: center;">
+                        <a href="{% url 'employee_edit' contract.employee.pk %}" class="btn btn-secondary" style="font-size: 0.7rem; padding: 2px 6px; text-decoration: none; width: 80px; text-align: center;">Edit</a>
+                        {% if contract.is_viewable %}
+                        <a href="{% url 'generate_contract_docx' contract.employee.pk %}" class="btn btn-primary" style="font-size: 0.7rem; padding: 2px 6px; text-decoration: none; background-color: var(--up-forest); width: 80px; text-align: center;">Generate</a>
+                        {% else %}
+                        <span style="font-size: 0.65rem; color: var(--text-muted); font-style: italic; white-space: nowrap;">Not available for viewing</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">No contracts registered in this department.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

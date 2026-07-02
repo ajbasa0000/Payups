@@ -1,0 +1,286 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ObR/BUR - {{ obr.obr_number }} - PayUPS{% endblock %}
+{% block page_title %}Obligation Request Viewer{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 1.5rem;">
+    <!-- Top Action bar -->
+    <div class="container-card" style="padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; background-color: var(--up-maroon-light);">
+        <div>
+            <span style="font-size: 0.8rem; font-weight: 700; color: var(--up-maroon); text-transform: uppercase;">Obligation Request Reference</span>
+            <h2 style="font-size: 1.3rem; color: var(--text-primary);">{{ obr.obr_number }}</h2>
+        </div>
+        
+        <div style="display: flex; gap: 0.75rem;">
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">← Back to Dashboard</a>
+            {% if dv %}
+            <a href="{% url 'dv_view' dv.pk %}" class="btn btn-primary" style="background-color: var(--up-forest);">View Linked DV Voucher</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Attached General Payroll Box -->
+    {% if obr.dvs.first.general_payroll %}
+    <div class="container-card" style="padding: 1rem 1.5rem; border-left: 5px solid var(--up-maroon); display: flex; align-items: center; justify-content: space-between; background-color: var(--bg-slate); margin-bottom: 0;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <svg style="width: 24px; height: 24px; color: var(--up-maroon);" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m32-2v-2a4 4 0 00-4-4h-3a4 4 0 00-4 4v2M9 8a3 3 0 11-6 0 3 3 0 016 0zm18 0a3 3 0 11-6 0 3 3 0 016 0zM12 17v-4m0 0a2 2 0 100-4 2 2 0 000 4z"></path>
+            </svg>
+            <div>
+                <strong style="color: var(--text-primary); font-size: 0.9rem;">Attached General Payroll Sheet:</strong>
+                <span style="color: var(--text-secondary); font-size: 0.85rem; display: block;">{{ obr.dvs.first.general_payroll.payroll_name }} ({{ obr.dvs.first.general_payroll.period_start|date:"M d, Y" }} to {{ obr.dvs.first.general_payroll.period_end|date:"M d, Y" }})</span>
+            </div>
+        </div>
+        <a href="{% url 'general_payroll_detail' obr.dvs.first.general_payroll.pk %}" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem; text-decoration: none;" target="_blank">Open Spreadsheet View</a>
+    </div>
+    {% else %}
+    <div class="container-card" style="padding: 1rem 1.5rem; border-left: 5px solid var(--up-gold); display: flex; align-items: center; justify-content: space-between; background-color: #fefaf0; margin-bottom: 0;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <svg style="width: 24px; height: 24px; color: var(--up-gold);" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            <div>
+                <strong style="color: var(--text-primary); font-size: 0.9rem;">Warning: No General Payroll Attached</strong>
+                <span style="color: var(--text-secondary); font-size: 0.85rem; display: block;">This transaction is missing the required General Payroll spreadsheet attachment.</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- The Paper Document Mockup -->
+    <div class="paper-document">
+        <div class="doc-header">
+            <div class="doc-header-logo">
+                <div style="border: 2px solid #000; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 1.7rem; font-weight: bold; color: var(--up-maroon);">UP</div>
+            </div>
+            <div class="doc-header-title">
+                <h1>OBLIGATION REQUEST AND STATUS</h1>
+                <h2>University of the Philippines System Administration</h2>
+                <div style="font-size: 9px; font-weight: 600;">Quezon City</div>
+            </div>
+            <div>
+                <table class="doc-header-meta" style="width: 100%;">
+                    <tr>
+                        <td><strong>No.</strong></td>
+                        <td>{{ obr.obr_number }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Date:</strong></td>
+                        <td>{{ obr.transaction_date|date:"d M Y" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Cluster:</strong></td>
+                        <td>{{ obr.fund_cluster }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <table class="doc-grid-table" style="margin-bottom: 0;">
+            <tr>
+                <td style="width: 120px; font-weight: bold;">Payee/Office</td>
+                <td>BASA, AARON CHRISTIAN JUGAO ET AL</td>
+            </tr>
+            <tr>
+                <td style="font-weight: bold;">Address</td>
+                <td>SPMO-S ET AL</td>
+            </tr>
+        </table>
+
+        <table class="doc-grid-table" style="margin-top: -1px; border-top: none;">
+            <thead>
+                <tr>
+                    <th style="width: 160px;">Responsibility Center</th>
+                    <th>Particulars</th>
+                    <th style="width: 80px;">PPA</th>
+                    <th style="width: 100px;">Account Code</th>
+                    <th style="width: 100px;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payee in payee_details %}
+                <tr>
+                    <td>{{ payee.account_to_debit|slice:":18" }} -- SPMO-S</td>
+                    <td>{{ payee.particulars }}</td>
+                    <td>{{ payee.ppa|slice:":14" }}</td>
+                    <td>50212990 99</td>
+                    <td style="text-align: right;">{{ payee.gross_amount }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 1.5rem; color: #555;">No payee details registered.</td>
+                </tr>
+                {% endfor %}
+                <tr style="font-weight: bold; border-top: 2px solid #000;">
+                    <td colspan="4" style="text-align: right;">TOTAL</td>
+                    <td style="text-align: right;">PhP {{ obr.total_amount }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Signatures A & B -->
+        <table class="doc-grid-table" style="margin-top: -1px; border-top: none;">
+            <tr>
+                <td style="width: 50%; padding: 0;">
+                    <div style="font-weight: bold; border-bottom: 1px solid #000; padding: 4px;">A. Certified</div>
+                    <div style="padding: 6px; font-size: 10px;">
+                        <input type="checkbox" checked disabled> Charges to appropriation/allotment necessary, lawful and under my direct supervision.<br><br>
+                        <input type="checkbox" checked disabled> Supporting documents valid, proper and legal
+                    </div>
+                    <div class="signature-box">
+                        {% if signatures.box_a %}
+                        <img src="{{ signatures.box_a }}" class="signature-image" alt="Isagani L. Bagus Signature">
+                        {% endif %}
+                        <div class="sig-name">ISAGANI L. BAGUS</div>
+                        <div class="sig-pos">Head, Supply Property and Management Office</div>
+                        <div style="text-align: center; font-size: 8px; margin-top: 2px;">Date: 30 Jun 2026</div>
+                    </div>
+                </td>
+                <td style="width: 50%; padding: 0; border-left: 2px solid #000;">
+                    <div style="font-weight: bold; border-bottom: 1px solid #000; padding: 4px;">B. Certified</div>
+                    <div style="padding: 6px; font-size: 10px;">
+                        <input type="checkbox" {% if obr.status == 'APPROVED' %}checked{% endif %} disabled> Allotment available and obligated for the purpose as indicated above.
+                    </div>
+                    <div class="signature-box" style="height: 120px;">
+                        {% if signatures.box_b %}
+                        <img src="{{ signatures.box_b }}" class="signature-image" alt="Noreen P. Escultura Signature">
+                        {% endif %}
+                        <div class="sig-name">NOREEN P. ESCULTURA</div>
+                        <div class="sig-pos">Director, SBO</div>
+                        <div style="text-align: center; font-size: 8px; margin-top: 2px;">Date: {% if obr.status == 'APPROVED' %}01 Jul 2026{% else %}--{% endif %}</div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Documents Submitted Widget -->
+    <div class="container-card">
+        <div class="card-header" style="background-color: var(--bg-slate);">
+            <h3 class="card-title">Documents Submitted (Digital Attachments)</h3>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Document Type</th>
+                        <th>Filename</th>
+                        <th>Added By</th>
+                        <th>Added On</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Certificate of Service / DTR / Accomplishment</strong></td>
+                        <td>DTR AND WORK ACCOMPLISHMENT SSPMO JUNE 16-30, 2026.pdf</td>
+                        <td>ao (Ruby Wadawad)</td>
+                        <td>30 Jun 2026, 04:08 PM</td>
+                        <td>
+                            <button onclick="alert('Viewing attachment')" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;">Preview</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>General Payroll (if more than 1 payee)</strong></td>
+                        <td>GENERAL PAYROLL SSPMO (JUNE 16-30, 2026).pdf</td>
+                        <td>ao (Ruby Wadawad)</td>
+                        <td>30 Jun 2026, 04:08 PM</td>
+                        <td>
+                            <button onclick="alert('Viewing attachment')" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;">Preview</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Contract of Service / Job Order / TOR</strong></td>
+                        <td>SSPMO JAN-JULY 2026 CONTRACTS.pdf</td>
+                        <td>ao (Ruby Wadawad)</td>
+                        <td>30 Jun 2026, 04:08 PM</td>
+                        <td>
+                            <button onclick="alert('Viewing attachment')" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;">Preview</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Active Action Form (Sign/Approve) -->
+    {% if request.user.is_superuser and obr.status != 'APPROVED' or request.user.profile.role == 'UNIT_HEAD' and obr.status == 'SUBMITTED' or request.user.username == 'sbo_officer' and obr.status == 'UNIT_HEAD_APPROVED' or request.user.username == 'sbo_supervisor' and obr.status == 'SBO_OFFICER_REVIEWED' or request.user.username == 'sbo_director' and obr.status == 'SBO_SUPERVISOR_REVIEWED' or request.user.profile.role == 'UNIT_AO' and obr.status == 'DRAFTED' %}
+    <div class="container-card" style="border-left: 5px solid var(--up-maroon);">
+        <div class="card-header">
+            <h3 class="card-title" style="color: var(--up-maroon);">
+                {% if request.user.is_superuser %}
+                Superuser Administrative Override Desk (Sign ObR)
+                {% else %}
+                Review Desk: Authorize and Sign ObR
+                {% endif %}
+            </h3>
+        </div>
+        <div class="card-body">
+            <form action="{% url 'approve_obr' obr.pk %}" method="post">
+                {% csrf_token %}
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label class="form-label" for="remarks">Audit & Certification Remarks</label>
+                    <textarea class="form-control" name="remarks" id="remarks" rows="2" placeholder="Write any budget alignment remarks or verification comments..."></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">
+                        Certify & Apply Digital Signature {% if request.user.is_superuser %}(Bypass Mode){% endif %}
+                    </button>
+                    <button type="button" onclick="alert('Voucher returned to creator.')" class="btn btn-secondary">
+                        Return / Reject
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+
+    <!-- Document Workflow Status History -->
+    <div class="container-card">
+        <div class="card-header">
+            <h3 class="card-title">Document Status History</h3>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div style="padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; background-color: var(--bg-slate); border-bottom: 1px solid var(--border-color);">
+                <strong style="font-size: 0.8rem; color: var(--text-secondary);">ObR Timeline:</strong>
+                <span class="badge {% if obr.status == 'DRAFTED' %}badge-pending{% else %}badge-approved{% endif %}">Created</span> →
+                <span class="badge {% if obr.status == 'SUBMITTED' %}badge-pending{% elif obr.status == 'DRAFTED' %}badge-draft{% else %}badge-approved{% endif %}">Unit Head</span> →
+                <span class="badge {% if obr.status == 'UNIT_HEAD_APPROVED' %}badge-pending{% elif obr.status in 'DRAFTED SUBMITTED' %}badge-draft{% else %}badge-approved{% endif %}">SBO Officer</span> →
+                <span class="badge {% if obr.status == 'SBO_OFFICER_REVIEWED' %}badge-pending{% elif obr.status in 'DRAFTED SUBMITTED UNIT_HEAD_APPROVED' %}badge-draft{% else %}badge-approved{% endif %}">SBO Supervisor</span> →
+                <span class="badge {% if obr.status == 'APPROVED' %}badge-approved{% else %}badge-draft{% endif %}">APPROVED</span>
+            </div>
+            
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Status Changed</th>
+                        <th>User Name</th>
+                        <th>Department</th>
+                        <th>Timestamp</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td><strong>{{ log.get_status_to_display }}</strong></td>
+                        <td>{{ log.changed_by.get_full_name }}</td>
+                        <td>{{ log.changed_by.profile.unit_code }}</td>
+                        <td>{{ log.changed_at|date:"d M Y, h:i A" }}</td>
+                        <td><span style="color: var(--text-secondary); font-style: italic;">{{ log.remarks }}</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--text-muted);">No logs registered.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

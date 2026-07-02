@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}General Payroll Sheet - PayUPS{% endblock %}
+{% block page_title %}General Payroll Viewer{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 1.5rem;">
+    <!-- Top Action bar -->
+    <div class="container-card" style="padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; background-color: var(--up-maroon-light);">
+        <div>
+            <span style="font-size: 0.8rem; font-weight: 700; color: var(--up-maroon); text-transform: uppercase;">General Payroll Spreadsheet</span>
+            <h2 style="font-size: 1.25rem; color: var(--text-primary);">Period: {{ payroll.period_start|date:"d-M-Y" }} to {{ payroll.period_end|date:"d-M-Y" }}</h2>
+        </div>
+        
+        <div style="display: flex; gap: 0.75rem;">
+            <a href="{% url 'general_payroll_list' %}" class="btn btn-secondary">← Back to Registry</a>
+            <button onclick="window.print()" class="btn btn-primary">Print / Export PDF</button>
+        </div>
+    </div>
+
+    <!-- The Spreadsheet Print Layout -->
+    <div class="paper-document" style="font-family: Arial, sans-serif; font-size: 10px; padding: 2rem; border: 1px solid #000; box-shadow: var(--shadow-lg);">
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <h2 style="font-size: 15px; font-weight: bold; margin-bottom: 2px; font-family: Arial, sans-serif; letter-spacing: 0.5px;">UNIVERSITY OF THE PHILIPPINES</h2>
+            <h3 style="font-size: 13px; font-weight: bold; margin-bottom: 2px; font-family: Arial, sans-serif;">UP System</h3>
+            <p style="font-size: 9px; margin-bottom: 2px;">Diliman Quezon City Metro Manila 1101</p>
+            <p style="font-size: 9px; font-weight: 600; margin-bottom: 8px;">TIN: 864006000</p>
+            <h3 style="font-size: 12px; font-weight: 800; border-top: 1px solid #000; border-bottom: 1px solid #000; display: inline-block; padding: 4px 20px; margin-top: 5px; font-family: Arial, sans-serif; letter-spacing: 1px;">GENERAL PAYROLL</h3>
+            <p style="font-size: 10px; font-weight: bold; margin-top: 4px;">{{ payroll.period_start|date:"d-M-Y"|upper }} to {{ payroll.period_end|date:"d-M-Y"|upper }}</p>
+        </div>
+
+        <!-- Report Parameters -->
+        <table style="width: 100%; margin-bottom: 1rem; font-size: 9px; line-height: 1.4;">
+            <tr>
+                <td style="width: 120px; font-weight: bold;">Report Parameters:</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td style="padding-left: 20px;">Payroll:</td>
+                <td>{{ payroll.payroll_name }}</td>
+            </tr>
+            <tr>
+                <td style="padding-left: 20px;">Fund:</td>
+                <td>{{ payroll.fund }}</td>
+            </tr>
+            <tr>
+                <td style="padding-left: 20px;">Bank:</td>
+                <td>{{ payroll.bank }}</td>
+            </tr>
+            <tr>
+                <td style="padding-left: 20px;">Department/Unit:</td>
+                <td style="font-weight: 700;">{{ payroll.get_department_display }}</td>
+            </tr>
+        </table>
+
+        <!-- Main Payroll Table -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem; border-top: 2px solid #000; border-bottom: 2px solid #000;">
+            <thead>
+                <tr style="font-weight: bold; border-bottom: 1px solid #000; text-align: center;">
+                    <th style="border: 1px solid #000; padding: 6px 4px; text-align: left; width: 80px;">TIN</th>
+                    <th style="border: 1px solid #000; padding: 6px 4px; text-align: left;">Employee Name</th>
+                    <th style="border: 1px solid #000; padding: 6px 4px; text-align: right; width: 75px;">Salary Basis</th>
+                    <th style="border: 1px solid #000; padding: 6px 4px; text-align: right; width: 50px;">No. of Days</th>
+                    <th style="border: 1px solid #000; padding: 6px 4px; text-align: right; width: 75px;">Gross Salary</th>
+                    <th style="border: 1px solid #000; padding: 6px 4px; text-align: right; width: 65px;">Philhealth Ded.</th>
+                    <th style="border: 1px solid #000; padding: 6px 4px; text-align: right; width: 50px;">SSS</th>
+                    <th style="border: 1px solid #000; padding: 6px 4px; text-align: right; width: 50px;">NVAT 3%</th>
+                    <th style="border: 1px solid #000; padding: 6px 4px; text-align: right; width: 65px;">EWT 5%</th>
+                    <th style="border: 1px solid #000; padding: 6px 4px; text-align: right; width: 65px;">EWT 10%</th>
+                    <th style="border: 1px solid #000; padding: 6px 4px; text-align: right; width: 75px;">Total Ded.</th>
+                    <th style="border: 1px solid #000; padding: 6px 4px; text-align: right; width: 85px;">Net Salary</th>
+                    <th style="border: 1px solid #000; padding: 6px 4px; text-align: left; width: 80px;">Bank Account</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px;">{{ item.employee.tin|default:"--" }}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; font-weight: bold;">{{ item.employee.name }}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{{ item.salary_basis }}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{{ item.no_of_days }}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right; font-weight: 600;">{{ item.gross_salary }}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{{ item.philhealth_deductions }}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{% if item.sss > 0 %}{{ item.sss }}{% else %}-{% endif %}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{% if item.nvat_3 > 0 %}{{ item.nvat_3 }}{% else %}-{% endif %}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{% if item.ewt_5 > 0 %}{{ item.ewt_5 }}{% else %}-{% endif %}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{% if item.ewt_10 > 0 %}{{ item.ewt_10 }}{% else %}-{% endif %}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right; font-weight: 600;">{{ item.total_deductions }}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right; font-weight: bold; font-size: 11px;">{{ item.net_salary }}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; font-family: monospace;">{{ item.employee.account_number|default:"--" }}</td>
+                </tr>
+                {% endfor %}
+                <tr style="font-weight: bold; border-top: 2px solid #000; border-bottom: 2px solid #000; background-color: #f8fafc;">
+                    <td colspan="2" style="padding: 6px 4px; text-align: left;">Total</td>
+                    <td style="padding: 6px 4px; text-align: right;">-</td>
+                    <td style="padding: 6px 4px; text-align: right;">-</td>
+                    <td style="padding: 6px 4px; text-align: right;">{{ totals.gross }}</td>
+                    <td style="padding: 6px 4px; text-align: right;">{{ totals.philhealth }}</td>
+                    <td style="padding: 6px 4px; text-align: right;">{{ totals.sss }}</td>
+                    <td style="padding: 6px 4px; text-align: right;">{{ totals.nvat }}</td>
+                    <td style="padding: 6px 4px; text-align: right;">{{ totals.ewt_5 }}</td>
+                    <td style="padding: 6px 4px; text-align: right;">{{ totals.ewt_10 }}</td>
+                    <td style="padding: 6px 4px; text-align: right;">{{ totals.deductions }}</td>
+                    <td style="padding: 6px 4px; text-align: right; font-size: 11px; color: var(--up-maroon);">PhP {{ totals.net }}</td>
+                    <td style="padding: 6px 4px; text-align: left;"></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Signature Footer matching screenshot -->
+        <div style="margin-top: 3rem; display: grid; grid-template-columns: 250px 250px 1fr; gap: 4rem; font-size: 9px;">
+            <!-- Preparer block (AO) -->
+            <div>
+                <div style="font-style: italic; margin-bottom: 1rem;">Prepared by:</div>
+                <div class="signature-box" style="height: 60px; max-width: 200px; border-bottom: 1px solid #000; display: flex; align-items: center; justify-content: center; position: relative;">
+                    <!-- Placeholder signature line (blank) -->
+                </div>
+                <div style="text-align: center; font-weight: bold; margin-top: 4px; color: #475569;">___________________________</div>
+                <div style="text-align: center; font-size: 8px; color: var(--text-secondary); margin-top: 4px;">Administrative Officer, {{ payroll.get_department_display }}</div>
+            </div>
+
+            <!-- Certifier block (Unit Head) -->
+            <div>
+                <div style="font-style: italic; margin-bottom: 1rem;">Certified services rendered:</div>
+                <div class="signature-box" style="height: 60px; max-width: 200px; border-bottom: 1px solid #000; display: flex; align-items: center; justify-content: center; position: relative;">
+                    {% if signatures.head %}
+                    <img src="{{ signatures.head }}" style="height: 50px; position: absolute; z-index: 5;" alt="Isagani L. Bagus Signature">
+                    {% endif %}
+                </div>
+                <div style="text-align: center; font-weight: bold; margin-top: 4px;">Isagani L. Bagus</div>
+                <div style="text-align: center; font-size: 8px; color: var(--text-secondary);">Acting Chief, {{ payroll.get_department_display }}</div>
+            </div>
+            <div></div>
+        </div>
+    </div>
+</div>
+{% endblock %}

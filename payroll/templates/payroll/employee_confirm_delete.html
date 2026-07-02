@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirm Delete - PayUPS{% endblock %}
+{% block page_title %}De-register Personnel{% endblock %}
+
+{% block content %}
+<div class="container-card" style="border-top: 4px solid var(--up-maroon); max-width: 500px; margin: 2rem auto;">
+    <div class="card-header" style="background-color: var(--up-maroon-light);">
+        <h3 class="card-title" style="color: var(--up-maroon);">Confirm De-registration</h3>
+    </div>
+    
+    <div class="card-body" style="text-align: center;">
+        <p style="font-size: 1rem; margin-bottom: 1.5rem; color: var(--text-primary);">
+            Are you absolutely sure you want to remove and de-register the employee record for:
+            <br><strong style="font-size: 1.15rem; color: var(--up-maroon); display: block; margin-top: 0.5rem;">{{ employee.name }}</strong>
+        </p>
+        
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 2rem;">
+            This action will delete the employee profile and all associated active contract mappings from PayUPS. This action cannot be undone.
+        </p>
+        
+        <form method="post" action="">
+            {% csrf_token %}
+            <div style="display: flex; justify-content: center; gap: 1rem;">
+                <a href="{% url 'employees_list' %}" class="btn btn-secondary" style="padding: 0.65rem 1.5rem;">No, Cancel</a>
+                <button type="submit" class="btn btn-primary" style="background-color: var(--up-maroon); color: white; padding: 0.65rem 2rem;">
+                    Yes, Delete Record
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if employee %}Edit COS Employee - {{ employee.name }}{% else %}Register COS Employee{% endif %} - PayUPS{% endblock %}
+{% block page_title %}{% if employee %}Modify Personnel Details{% else %}Register New COS Personnel{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-card" style="border-top: 4px solid var(--up-maroon); max-width: 900px; margin: 0 auto;">
+    <div class="card-header">
+        <h3 class="card-title">{% if employee %}Edit Profile & Active Contract for: {{ employee.name }}{% else %}New Engagement Registration Form{% endif %}</h3>
+        <a href="{% url 'employees_list' %}" class="btn btn-secondary">Back to Registry</a>
+    </div>
+    
+    <div class="card-body">
+        <form method="post" action="">
+            {% csrf_token %}
+            
+            <h4 style="color: var(--up-maroon); margin-bottom: 0.25rem; font-weight: 700; border-bottom: 2px solid var(--up-maroon-light); padding-bottom: 0.25rem;">I. Personal & Bank Account Details</h4>
+            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 1.25rem; font-style: italic;">(These details reflect in the Employee Profile and are used for payroll and bank advice generation)</div>
+            
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 2rem;">
+                <div class="form-group" style="grid-column: span 2;">
+                    <label class="form-label" for="name">Full Name (LASTNAME, FIRSTNAME MIDDLENAME)</label>
+                    <input class="form-control" type="text" name="name" id="name" value="{{ employee.name|default:'' }}" required placeholder="e.g. ABAN, ANANEZA PANDORO">
+                </div>
+                
+                <div class="form-group" style="grid-column: span 2;">
+                    <label class="form-label" for="address">Full Residence Address</label>
+                    <input class="form-control" type="text" name="address" id="address" value="{{ employee.address|default:'' }}" required placeholder="e.g. BLK 61 LOT 44, LAKAMBINI ST., LAGRO QC">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="tin">TIN (Taxpayer Identification No.)</label>
+                    <input class="form-control" type="text" name="tin" id="tin" value="{{ employee.tin|default:'' }}" placeholder="e.g. 205-547-525">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="bank_name">Servicing Bank</label>
+                    <input class="form-control" type="text" name="bank_name" id="bank_name" value="{{ employee.bank_name|default:'LBP' }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="account_number">Bank Account Number</label>
+                    <input class="form-control" type="text" name="account_number" id="account_number" value="{{ employee.account_number|default:'' }}" placeholder="e.g. 3077123953">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="unit">Specific Unit / Section</label>
+                    <input class="form-control" type="text" name="unit" id="unit" value="{{ employee.unit|default:'' }}" placeholder="e.g. CIDS, ITDC, SPMO">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="govt_id">Government Issued ID No. (e.g. LTO License)</label>
+                    <input class="form-control" type="text" name="govt_id" id="govt_id" value="{{ employee.govt_id|default:'' }}" placeholder="e.g. KO1-14-000493">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="govt_id_details">ID Date / Place Issued</label>
+                    <input class="form-control" type="text" name="govt_id_details" id="govt_id_details" value="{{ employee.govt_id_details|default:'' }}" placeholder="e.g. January 6, 2025/Cabadbaran City">
+                </div>
+
+                <div class="form-group" style="grid-column: span 2;">
+                    <label class="form-label" for="department">University Department / Office</label>
+                    {% if is_superuser %}
+                    <select class="form-control" name="department" id="department" required>
+                        {% for choice in departments %}
+                        <option value="{{ choice.0 }}" {% if employee.department == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                    <input class="form-control" type="text" value="{{ profile_department }}" readonly style="background-color: #f1f5f9; cursor: not-allowed;">
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Section 2: Contract Info -->
+            <h4 style="color: var(--up-maroon); margin-bottom: 0.25rem; font-weight: 700; border-bottom: 2px solid var(--up-maroon-light); padding-bottom: 0.25rem;">II. Contract engagement & Rates</h4>
+            <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 1.25rem; font-style: italic;">(These details reflect in the Contract and are used for contract document generation)</div>
+            
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 2rem;">
+                <div class="form-group">
+                    <label class="form-label" for="designation">Designation / Role Title</label>
+                    <input class="form-control" type="text" name="designation" id="designation" value="{{ contract.designation|default:'COS Staff' }}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="rate_type">COS Engagement Type</label>
+                    <select class="form-control" name="rate_type" id="rate_type" onchange="toggleRateInputs()" required>
+                        <option value="MONTHLY" {% if contract.rate_type == 'MONTHLY' or not contract %}selected{% endif %}>Monthly Rate COS</option>
+                        <option value="DAILY" {% if contract.rate_type == 'DAILY' %}selected{% endif %}>Daily Rate COS</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="monthly_rate">Monthly Rate (Gross) - PhP</label>
+                    <input class="form-control" type="number" step="0.01" name="monthly_rate" id="monthly_rate" value="{{ contract.monthly_rate|default:'0.00' }}" oninput="syncRates('monthly')">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="daily_rate">Daily Rate - PhP</label>
+                    <input class="form-control" type="number" step="0.01" name="daily_rate" id="daily_rate" value="{{ contract.daily_rate|default:'0.00' }}" oninput="syncRates('daily')">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="start_date">Validity Start Date</label>
+                    <input class="form-control" type="date" name="start_date" id="start_date" value="{{ contract.start_date|date:'Y-m-d'|default:'2026-07-01' }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="end_date">Validity End Date</label>
+                    <input class="form-control" type="date" name="end_date" id="end_date" value="{{ contract.end_date|date:'Y-m-d'|default:'2026-12-31' }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="funding_source">Earmarked Funding Source</label>
+                    <input class="form-control" type="text" name="funding_source" id="funding_source" value="{% if employee %}{{ contract.funding_source }}{% endif %}" required placeholder="e.g. UPS SPMO MOOE">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="head_of_unit_name">Head of Unit / Representative Name</label>
+                    <input class="form-control" type="text" name="head_of_unit_name" id="head_of_unit_name" value="{% if employee %}{{ contract.head_of_unit_name }}{% endif %}" required placeholder="e.g. ISAGANI L. BAGUS">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="head_of_unit_position">Representative Official Position</label>
+                    <input class="form-control" type="text" name="head_of_unit_position" id="head_of_unit_position" value="{% if employee %}{{ contract.head_of_unit_position }}{% endif %}" required placeholder="e.g. Acting Chief SSPMO">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="head_of_unit_id">Representative ID No.</label>
+                    <input class="form-control" type="text" name="head_of_unit_id" id="head_of_unit_id" value="{% if employee %}{{ contract.head_of_unit_id }}{% endif %}" required placeholder="e.g. NO4-03-000009">
+                </div>
+
+                <div class="form-group" style="grid-column: span 2;">
+                    <label class="form-label" for="head_of_unit_id_details">Rep ID Date / Place Issued</label>
+                    <input class="form-control" type="text" name="head_of_unit_id_details" id="head_of_unit_id_details" value="{% if employee %}{{ contract.head_of_unit_id_details }}{% endif %}" required placeholder="e.g. June 8, 2022 / Quezon City">
+                </div>
+
+                <!-- Witnesses -->
+                <div class="form-group">
+                    <label class="form-label" for="witness1_name">Witness 1 Name</label>
+                    <input class="form-control" type="text" name="witness1_name" id="witness1_name" value="{% if employee %}{{ contract.witness1_name }}{% endif %}" required placeholder="e.g. MARK JOSHUA M. PEDROSA">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="witness1_position">Witness 1 Position</label>
+                    <input class="form-control" type="text" name="witness1_position" id="witness1_position" value="{% if employee %}{{ contract.witness1_position }}{% endif %}" required placeholder="e.g. Administrative Assistant I">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="witness2_name">Witness 2 Name</label>
+                    <input class="form-control" type="text" name="witness2_name" id="witness2_name" value="{% if employee %}{{ contract.witness2_name }}{% endif %}" required placeholder="e.g. JULIUS MAR L. DELA CRUZ">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="witness2_position">Witness 2 Position</label>
+                    <input class="form-control" type="text" name="witness2_position" id="witness2_position" value="{% if employee %}{{ contract.witness2_position }}{% endif %}" required placeholder="e.g. Junior Office Manager">
+                </div>
+
+                <div class="form-group" style="grid-column: span 2;">
+                    <label class="form-label" style="font-weight: 700;">Scope of Work / Annex B Functions (Multiple Fields)</label>
+                    <div id="duties-container" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; width: 100%;">
+                        {% if contract_duties_list %}
+                            {% for duty in contract_duties_list %}
+                            <div class="duty-row" style="display: flex; gap: 0.5rem; align-items: center; width: 100%;">
+                                <input type="text" name="duties[]" class="form-control" value="{{ duty }}" required placeholder="e.g. Assist in hiring of personnel" style="flex: 1;">
+                                <button type="button" class="btn btn-secondary" style="padding: 6px 12px; background-color: var(--up-maroon); color: white;" onclick="removeDutyRow(this)">Remove</button>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="duty-row" style="display: flex; gap: 0.5rem; align-items: center; width: 100%;">
+                                <input type="text" name="duties[]" class="form-control" required placeholder="e.g. Plot the IOB MOOE for the annual request" style="flex: 1;">
+                                <button type="button" class="btn btn-secondary" style="padding: 6px 12px; background-color: var(--up-maroon); color: white;" onclick="removeDutyRow(this)">Remove</button>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="addDutyRow()" style="font-size: 0.75rem; padding: 4px 12px; border-color: var(--up-maroon); color: var(--up-maroon);">+ Add Function</button>
+                </div>
+            </div>
+
+            <!-- Submit Panel -->
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+                <a href="{% url 'employees_list' %}" class="btn btn-secondary" style="padding: 0.75rem 2.0rem;">Cancel</a>
+                <button type="submit" class="btn btn-primary" style="padding: 0.75rem 2.5rem;">
+                    {% if employee %}Save and Apply Changes{% else %}Register Personnel & Contract{% endif %}
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleRateInputs() {
+        const type = document.getElementById('rate_type').value;
+        const monthlyInput = document.getElementById('monthly_rate');
+        const dailyInput = document.getElementById('daily_rate');
+
+        if (type === 'MONTHLY') {
+            monthlyInput.removeAttribute('readonly');
+            monthlyInput.style.backgroundColor = '';
+            dailyInput.setAttribute('readonly', 'true');
+            dailyInput.style.backgroundColor = '#f1f5f9';
+        } else {
+            dailyInput.removeAttribute('readonly');
+            dailyInput.style.backgroundColor = '';
+            monthlyInput.setAttribute('readonly', 'true');
+            monthlyInput.style.backgroundColor = '#f1f5f9';
+        }
+    }
+
+    function syncRates(source) {
+        const type = document.getElementById('rate_type').value;
+        const monthlyInput = document.getElementById('monthly_rate');
+        const dailyInput = document.getElementById('daily_rate');
+
+        let monthlyVal = parseFloat(monthlyInput.value) || 0;
+        let dailyVal = parseFloat(dailyInput.value) || 0;
+
+        if (source === 'monthly' && type === 'MONTHLY') {
+            // Daily = Monthly / 22
+            dailyInput.value = (monthlyVal / 22).toFixed(2);
+        } else if (source === 'daily' && type === 'DAILY') {
+            // Monthly = Daily * 22
+            monthlyInput.value = (dailyVal * 22).toFixed(2);
+        }
+    }
+
+    function addDutyRow() {
+        const container = document.getElementById('duties-container');
+        const row = document.createElement('div');
+        row.className = 'duty-row';
+        row.style.display = 'flex';
+        row.style.gap = '0.5rem';
+        row.style.alignItems = 'center';
+        row.style.width = '100%';
+        row.innerHTML = `
+            <input type="text" name="duties[]" class="form-control" required placeholder="e.g. Provide administrative support" style="flex: 1;">
+            <button type="button" class="btn btn-secondary" style="padding: 6px 12px; background-color: var(--up-maroon); color: white;" onclick="removeDutyRow(this)">Remove</button>
+        `;
+        container.appendChild(row);
+    }
+
+    function removeDutyRow(button) {
+        const container = document.getElementById('duties-container');
+        // Keep at least one duty row
+        if (container.children.length > 1) {
+            button.closest('.duty-row').remove();
+        } else {
+            alert("You must define at least one duty/function for this engagement.");
+        }
+    }
+
+    // Run toggle on init
+    window.addEventListener('DOMContentLoaded', () => {
+        toggleRateInputs();
+    });
+</script>
+{% endblock %}

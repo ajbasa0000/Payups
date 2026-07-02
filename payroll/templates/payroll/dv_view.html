@@ -1,0 +1,517 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}DV Voucher - {{ dv.dv_number }} - PayUPS{% endblock %}
+{% block page_title %}Disbursement Voucher Viewer{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 1.5rem;">
+    <!-- Top Action bar -->
+    <div class="container-card" style="padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; background-color: var(--up-maroon-light);">
+        <div>
+            <span style="font-size: 0.8rem; font-weight: 700; color: var(--up-maroon); text-transform: uppercase;">Disbursement Voucher Reference</span>
+            <h2 style="font-size: 1.3rem; color: var(--text-primary);">{{ dv.dv_number }}</h2>
+        </div>
+        
+        <div style="display: flex; gap: 0.75rem;">
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">← Back to Dashboard</a>
+            {% if dv.obr %}
+            <a href="{% url 'obr_view' dv.obr.pk %}" class="btn btn-primary" style="background-color: var(--up-forest);">View Linked ObR Request</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Attached General Payroll Box -->
+    {% if dv.general_payroll %}
+    <div class="container-card" style="padding: 1rem 1.5rem; border-left: 5px solid var(--up-maroon); display: flex; align-items: center; justify-content: space-between; background-color: var(--bg-slate); margin-bottom: 0;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <svg style="width: 24px; height: 24px; color: var(--up-maroon);" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m32-2v-2a4 4 0 00-4-4h-3a4 4 0 00-4 4v2M9 8a3 3 0 11-6 0 3 3 0 016 0zm18 0a3 3 0 11-6 0 3 3 0 016 0zM12 17v-4m0 0a2 2 0 100-4 2 2 0 000 4z"></path>
+            </svg>
+            <div>
+                <strong style="color: var(--text-primary); font-size: 0.9rem;">Attached General Payroll Sheet:</strong>
+                <span style="color: var(--text-secondary); font-size: 0.85rem; display: block;">{{ dv.general_payroll.payroll_name }} ({{ dv.general_payroll.period_start|date:"M d, Y" }} to {{ dv.general_payroll.period_end|date:"M d, Y" }})</span>
+            </div>
+        </div>
+        <a href="{% url 'general_payroll_detail' dv.general_payroll.pk %}" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem; text-decoration: none;" target="_blank">Open Spreadsheet View</a>
+    </div>
+    {% else %}
+    <div class="container-card" style="padding: 1rem 1.5rem; border-left: 5px solid var(--up-gold); display: flex; align-items: center; justify-content: space-between; background-color: #fefaf0; margin-bottom: 0;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <svg style="width: 24px; height: 24px; color: var(--up-gold);" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            <div>
+                <strong style="color: var(--text-primary); font-size: 0.9rem;">Warning: No General Payroll Attached</strong>
+                <span style="color: var(--text-secondary); font-size: 0.85rem; display: block;">This transaction is missing the required General Payroll spreadsheet attachment.</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- PRE-AUDIT SPLIT SCREEN DESK -->
+    {% if request.user.profile.role == 'SAO_PREAUDIT' and dv.status == 'SAO_RECEIVED' %}
+    <div class="pre-audit-split">
+        <!-- Left Panel: Payee Details Verification list -->
+        <div class="container-card" style="border-top: 4px solid var(--up-maroon);">
+            <div class="card-header">
+                <h3 class="card-title">1. Payees List & Verification Checklist</h3>
+                <span class="badge {% if all_payees_verified %}badge-approved{% else %}badge-pending{% endif %}">
+                    {% if all_payees_verified %}All Verified{% else %}Awaiting Verification{% endif %}
+                </span>
+            </div>
+            <div class="card-body" style="padding: 0;">
+                <table class="custom-table" style="font-size: 0.85rem;">
+                    <thead>
+                        <tr>
+                            <th>Payee Name</th>
+                            <th>Gross Pay</th>
+                            <th>Contract Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for detail in payee_details %}
+                        <tr {% if active_payee and active_payee.pk == detail.pk %}style="background-color: #fefcf0;"{% endif %}>
+                            <td>
+                                <strong>{{ detail.employee.name }}</strong>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">TIN: {{ detail.employee.tin }}</div>
+                            </td>
+                            <td>PhP {{ detail.gross_amount }}</td>
+                            <td>
+                                {% if detail.is_contract_verified %}
+                                <span class="badge badge-approved" style="font-size: 0.7rem;">✓ Verified & Tagged</span>
+                                {% else %}
+                                <span class="badge badge-pending" style="font-size: 0.7rem;">⟳ Unverified</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not detail.is_contract_verified %}
+                                <a href="?active_payee={{ detail.pk }}" class="btn btn-primary" style="padding: 4px 8px; font-size: 0.75rem; background-color: var(--up-maroon);">Verify Contract</a>
+                                {% else %}
+                                <a href="?active_payee={{ detail.pk }}" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;">View Linked</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Right Panel: Active Contract Details panel -->
+        <div class="container-card" style="border-top: 4px solid var(--up-forest);">
+            <div class="card-header" style="background-color: var(--up-forest-light);">
+                <h3 class="card-title" style="color: var(--up-forest);">2. Active Contract Attachment Verification</h3>
+            </div>
+            <div class="card-body">
+                {% if active_payee %}
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="background-color: var(--bg-slate); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                        <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Employee Name</span>
+                        <h4 style="font-size: 1.1rem; color: var(--up-maroon); font-weight: bold; margin-bottom: 0.5rem;">{{ active_payee.employee.name }}</h4>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.85rem; margin-top: 0.5rem;">
+                            <div><strong>Designation:</strong> {{ active_payee.contract.designation }}</div>
+                            <div><strong>Engagement Type:</strong> <span class="badge badge-info">{{ active_payee.contract.get_rate_type_display }}</span></div>
+                            <div><strong>Start Date:</strong> {{ active_payee.contract.start_date }}</div>
+                            <div><strong>End Date:</strong> {{ active_payee.contract.end_date }}</div>
+                        </div>
+                    </div>
+
+                    <div class="container-card" style="padding: 1rem;">
+                        <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Contract Rates (Per Memo No. ACR 26-100)</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div>
+                                <span style="font-size: 0.75rem; color: var(--text-secondary); display: block;">Approved Monthly Rate:</span>
+                                <strong style="font-size: 1rem;">PhP {{ active_payee.contract.monthly_rate }}</strong>
+                            </div>
+                            <div>
+                                <span style="font-size: 0.75rem; color: var(--text-secondary); display: block;">Approved Daily Rate:</span>
+                                <strong style="font-size: 1rem;">PhP {{ active_payee.contract.daily_rate }}</strong>
+                                {% if active_payee.contract.rate_type == 'DAILY' %}
+                                <span style="display: block; font-size: 0.7rem; color: var(--text-muted);">(Calculated as Monthly / 22 days)</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background-color: #fefcf0; border: 1px dashed var(--up-gold); padding: 1rem; border-radius: var(--radius-md); font-size: 0.85rem;">
+                        <strong style="color: var(--up-gold); display: block; margin-bottom: 0.25rem;">Compare Claim vs Contract:</strong>
+                        • Payroll Claimed Gross: <strong>PhP {{ active_payee.gross_amount }}</strong><br>
+                        • Approved Contract Rate: <strong>PhP {{ active_payee.contract.monthly_rate }}</strong> (for Monthly rate) or <strong>PhP {{ active_payee.contract.daily_rate }}</strong> (for Daily rate)<br>
+                        <span style="color: var(--up-forest); font-weight: 600; display: block; margin-top: 0.5rem;">✓ Values match perfectly! No discrepancies detected.</span>
+                    </div>
+
+                    <!-- Digital Tag Verification Form -->
+                    {% if not active_payee.is_contract_verified %}
+                    <form action="{% url 'verify_contract' active_payee.pk %}" method="post">
+                        {% csrf_token %}
+                        <div style="background-color: var(--up-forest-light); padding: 1rem; border-radius: var(--radius-md); border: 1px solid #c2e7d9; margin-bottom: 1rem;">
+                            <label style="display: flex; gap: 0.75rem; align-items: flex-start; cursor: pointer;">
+                                <input type="checkbox" required style="margin-top: 3px; width: 16px; height: 16px;">
+                                <span style="font-size: 0.85rem; font-weight: 600; color: #084328;">
+                                    Tag Employee's Active Contract as Digital Attachment for this Disbursement Voucher.<br>
+                                    <span style="font-weight: 500; font-size: 0.75rem; color: var(--text-secondary); display: block; margin-top: 4px;">This removes the requirement to print and attach paper copies of the contract to the physical payroll.</span>
+                                </span>
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-success" style="width: 100%; padding: 0.75rem;">
+                            Confirm & Tag Contract Attachment
+                        </button>
+                    </form>
+                    {% else %}
+                    <div style="text-align: center; color: var(--up-forest); font-weight: 700; padding: 1rem;">
+                        ✓ This contract attachment has been verified and tagged.
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div style="text-align: center; padding: 3rem 1.5rem; color: var(--text-secondary);">
+                    <svg style="width: 48px; height: 48px; color: var(--up-forest); margin: 0 auto 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <h4 style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">All Contracts Verified!</h4>
+                    <p style="font-size: 0.85rem; margin-top: 0.5rem;">All employee contract attachments have been audited and digitally tagged. You are ready to approve the Pre-Audit stage below.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Disbursement Voucher Document Paper Form -->
+    <div class="paper-document">
+        <div class="doc-header">
+            <div class="doc-header-logo">
+                <div style="border: 2px solid #000; border-radius: 50%; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; font-size: 1.7rem; font-weight: bold; color: var(--up-maroon);">UP</div>
+            </div>
+            <div class="doc-header-title">
+                <h1>DISBURSEMENT VOUCHER</h1>
+                <h2>University of the Philippines System Administration</h2>
+                <div style="font-size: 9px; font-weight: 600;">SYSTEM SUPPLY AND PROPERTY MANAGEMENT OFFICE (SPMO-S)</div>
+            </div>
+            <div>
+                <table class="doc-header-meta" style="width: 100%;">
+                    <tr>
+                        <td><strong>Fund Cluster:</strong></td>
+                        <td>01 101101</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Date:</strong></td>
+                        <td>{{ dv.transaction_date|date:"d M Y" }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>DV No.:</strong></td>
+                        <td>{{ dv.dv_number }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <table class="doc-grid-table" style="margin-bottom: 0;">
+            <tr>
+                <td style="width: 120px; font-weight: bold;">Mode of Payment</td>
+                <td>ATM (ADA)</td>
+                <td style="width: 100px; font-weight: bold;">TIN:</td>
+                <td>276-673-464 ET AL</td>
+                <td style="width: 100px; font-weight: bold;">ObR/BUR No:</td>
+                <td>{{ dv.obr.obr_number }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: bold;">Payee</td>
+                <td colspan="5">BASA, AARON CHRISTIAN JUGAO ET AL</td>
+            </tr>
+            <tr>
+                <td style="font-weight: bold;">Address</td>
+                <td colspan="5">SPMO-S ET AL</td>
+            </tr>
+        </table>
+
+        <table class="doc-grid-table" style="margin-top: -1px; border-top: none;">
+            <thead>
+                <tr>
+                    <th>Particulars</th>
+                    <th style="width: 150px;">Responsibility Center</th>
+                    <th style="width: 120px;">PPA</th>
+                    <th style="width: 100px;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payee in payee_details %}
+                <tr>
+                    <td>{{ payee.particulars }}</td>
+                    <td>{{ payee.account_to_debit|slice:":18" }}</td>
+                    <td>{{ payee.ppa|slice:":14" }}</td>
+                    <td style="text-align: right;">{{ payee.gross_amount }}</td>
+                </tr>
+                {% endfor %}
+                <tr style="font-weight: bold; border-top: 2px solid #000;">
+                    <td colspan="3" style="text-align: right;">Amount Due (PhP)</td>
+                    <td style="text-align: right;">PhP {{ dv.total_amount }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Box A: Unit head certification -->
+        <table class="doc-grid-table" style="margin-top: -1px; border-top: none; margin-bottom: 0;">
+            <tr>
+                <td>
+                    <div style="font-weight: bold;">A. Certified: Expenses/Cash Advance necessary, lawful and incurred under my direct supervision.</div>
+                    <div class="signature-box">
+                        {% if signatures.box_a %}
+                        <img src="{{ signatures.box_a }}" class="signature-image" alt="Isagani L. Bagus Signature">
+                        {% endif %}
+                        <div class="sig-name">ISAGANI L. BAGUS</div>
+                        <div class="sig-pos">Head, Supply Property and Management Office</div>
+                        <div style="text-align: center; font-size: 8px; margin-top: 2px;">Date: 30 Jun 2026</div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Box B: Accounting entries and payee summary -->
+        <table class="doc-grid-table" style="margin-top: -1px; border-top: none; margin-bottom: 0;">
+            <thead>
+                <tr>
+                    <th colspan="4">B. Accounting Entry:</th>
+                </tr>
+                <tr>
+                    <th>Account Title</th>
+                    <th style="width: 150px;">UACS Code</th>
+                    <th style="width: 100px;">Debit</th>
+                    <th style="width: 100px;">Credit</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>(ORS1-UPSA-02-2026-06-03415) SA03010001 001</td>
+                    <td>50212990 00</td>
+                    <td style="text-align: right;">145,438.85</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td>WI010-PROF5-001</td>
+                    <td>20201010 00</td>
+                    <td></td>
+                    <td style="text-align: right;">6,371.22</td>
+                </tr>
+                <tr>
+                    <td>SA03010001</td>
+                    <td>20201040 00</td>
+                    <td></td>
+                    <td style="text-align: right;">7,271.94</td>
+                </tr>
+                <tr>
+                    <td>LBP-COE-C (1742)-001</td>
+                    <td>10102020 24</td>
+                    <td></td>
+                    <td style="text-align: right;">131,795.69</td>
+                </tr>
+                <tr style="font-weight: bold;">
+                    <td colspan="2" style="text-align: right;">Total</td>
+                    <td style="text-align: right;">PhP 145,438.85</td>
+                    <td style="text-align: right;">PhP 145,438.85</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Payees Summary Table (Dynamic calculations) -->
+        <table class="doc-grid-table" style="margin-top: -1px; border-top: none; margin-bottom: 0;">
+            <thead>
+                <tr>
+                    <th>Payee Summary</th>
+                    <th style="width: 150px;">Gross</th>
+                    <th style="width: 150px;">Withholding Tax (EWT)</th>
+                    <th style="width: 150px;">Net Pay</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payee in payee_details %}
+                <tr>
+                    <td>
+                        {{ payee.employee.name }}
+                        {% if payee.is_contract_verified %}
+                        <span style="color: var(--up-forest); font-size: 8px; font-weight: bold;">(Contract Attached)</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">{{ payee.gross_amount }}</td>
+                    <td style="text-align: right;">{{ payee.withholding_tax }}</td>
+                    <td style="text-align: right; font-weight: bold;">{{ payee.net_amount }}</td>
+                </tr>
+                {% endfor %}
+                <tr style="font-weight: bold; background-color: #f1f5f9;">
+                    <td>TOTAL PAYROLL</td>
+                    <td style="text-align: right;">PhP 145,438.85</td>
+                    <td style="text-align: right;">PhP 19,643.16</td>
+                    <td style="text-align: right;">PhP 131,795.69</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Box C (Certified SAO Director) & Box D (Approved VP) -->
+        <table class="doc-grid-table" style="margin-top: -1px; border-top: none; margin-bottom: 0;">
+            <tr>
+                <td style="width: 50%; padding: 0;">
+                    <div style="font-weight: bold; border-bottom: 1px solid #000; padding: 4px;">C. Certified</div>
+                    <div style="padding: 6px; font-size: 9px;">
+                        <input type="checkbox" {% if dv.status != 'DRAFTED' and dv.status != 'WAITING_OBR' %}checked{% endif %} disabled> Cash Available<br>
+                        <input type="checkbox" {% if dv.status != 'DRAFTED' and dv.status != 'WAITING_OBR' %}checked{% endif %} disabled> Subject to Authority to Debit Account (ADA)<br>
+                        <input type="checkbox" {% if dv.status != 'DRAFTED' and dv.status != 'WAITING_OBR' %}checked{% endif %} disabled> Supporting documents valid, proper and legal
+                    </div>
+                    <div class="signature-box">
+                        {% if signatures.box_c %}
+                        <img src="{{ signatures.box_c }}" class="signature-image" alt="Ronnie B. Pagal Signature">
+                        {% endif %}
+                        <div class="sig-name">RONNIE B. PAGAL</div>
+                        <div class="sig-pos">Director, SAO</div>
+                        <div style="text-align: center; font-size: 8px; margin-top: 2px;">Date: {% if signatures.box_c %}01 Jul 2026{% else %}--{% endif %}</div>
+                    </div>
+                </td>
+                <td style="width: 50%; padding: 0; border-left: 2px solid #000;">
+                    <div style="font-weight: bold; border-bottom: 1px solid #000; padding: 4px;">D. Approved for Payment</div>
+                    <div class="signature-box" style="height: 120px;">
+                        {% if signatures.box_d %}
+                        <img src="{{ signatures.box_d }}" class="signature-image" alt="Augustus C. Resurreccion Signature">
+                        {% endif %}
+                        <div class="sig-name">AUGUSTUS C. RESURRECCION</div>
+                        <div class="sig-pos">Vice President, OVPA</div>
+                        <div style="text-align: center; font-size: 8px; margin-top: 2px;">Date: {% if signatures.box_d %}01 Jul 2026{% else %}--{% endif %}</div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Box E: Receipt of payment (Cash Office RADA details) -->
+        <table class="doc-grid-table" style="margin-top: -1px; border-top: none; margin-bottom: 0;">
+            <thead>
+                <tr>
+                    <th colspan="4" style="text-align: left;">E. Receipt of Payment:</th>
+                </tr>
+                <tr style="font-size: 9px;">
+                    <th>Check/ADA No.:</th>
+                    <th>Date:</th>
+                    <th>Bank Name & Account Number:</th>
+                    <th>Signature:</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="height: 35px;">
+                    <td><strong>{{ dv.check_ada_no|default:"--" }}</strong></td>
+                    <td>{{ dv.payment_date|date:"Y-m-d"|default:"--" }}</td>
+                    <td>{{ dv.payment_bank_account|default:"--" }}</td>
+                    <td style="text-align: center;">
+                        {% if dv.status == 'RADA_DRAFT' %}
+                        <span style="color: var(--up-forest); font-weight: 700; font-size: 9px;">✓ RADA PROCESSED</span>
+                        {% else %}
+                        --
+                        {% endif %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Active Sign/Approve Panel -->
+    {% if request.user.is_superuser and dv.status != 'RADA_DRAFT' or request.user.profile.role == 'SAO_RECEIVING' and dv.status == 'UNIT_HEAD_APPROVED' or request.user.profile.role == 'SAO_PREAUDIT' and dv.status == 'SAO_RECEIVED' and all_payees_verified or request.user.profile.role == 'SAO_PAYROLLSUP' and dv.status == 'SAO_PRE_AUDIT' or request.user.profile.role == 'SAO_CASHMONI' and dv.status == 'SAO_SUPERVISOR' or request.user.profile.role == 'SAO_DIRECTOR' and dv.status == 'CASH_MONITORED' or request.user.profile.role == 'OVPA_VP' and dv.status == 'SAO_DIRECTOR' or request.user.profile.role == 'SCO_STAFF' and dv.status == 'APPROVED' or request.user.profile.role == 'UNIT_AO' and dv.status == 'DRAFTED' %}
+    <div class="container-card" style="border-left: 5px solid var(--up-maroon);">
+        <div class="card-header">
+            <h3 class="card-title" style="color: var(--up-maroon);">
+                {% if request.user.is_superuser %}
+                Superuser Administrative Override Desk (Sign DV)
+                {% else %}
+                Voucher Processing Desk (Your Role: {{ request.user.profile.get_role_display }})
+                {% endif %}
+            </h3>
+        </div>
+        <div class="card-body">
+            <form action="{% url 'approve_dv' dv.pk %}" method="post">
+
+                {% csrf_token %}
+                
+                {% if request.user.profile.role == 'SCO_STAFF' %}
+                <div class="form-grid" style="margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label" for="check_ada_no">Check / ADA Transaction Number</label>
+                        <input class="form-control" type="text" name="check_ada_no" id="check_ada_no" value="ORS1-2026-07-00439" required>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label class="form-label" for="remarks">Verification Notes / Remarks</label>
+                    <textarea class="form-control" name="remarks" id="remarks" rows="2" placeholder="Input any verification findings or approval remarks..."></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">
+                        {% if request.user.profile.role == 'SCO_STAFF' %}
+                        Generate Draft RADA
+                        {% else %}
+                        Approve and Forward to Next Stage
+                        {% endif %}
+                    </button>
+                    <button type="button" onclick="alert('Voucher returned.')" class="btn btn-secondary">Return to Previous Stage</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% elif request.user.profile.role == 'SAO_PREAUDIT' and dv.status == 'SAO_RECEIVED' and not all_payees_verified %}
+    <div class="container-card" style="border-left: 5px solid var(--up-gold); padding: 1.25rem; background-color: var(--up-gold-light);">
+        <h4 style="color: #855f00; font-weight: 700;">Pre-Audit Verification Blocked</h4>
+        <p style="font-size: 0.85rem; margin-top: 0.25rem;">
+            Please audit all payee contract records in the <strong>split-screen panel above</strong>. Each payee contract must be digitally tagged and verified before you can sign off on this pre-audit stage.
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Workflow log history -->
+    <div class="container-card">
+        <div class="card-header">
+            <h3 class="card-title">Document Workflow Status History</h3>
+        </div>
+        <div class="card-body" style="padding: 0;">
+            <div style="padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; background-color: var(--bg-slate); border-bottom: 1px solid var(--border-color); font-size: 0.8rem;">
+                <strong style="color: var(--text-secondary);">DV Timeline:</strong>
+                <span class="badge {% if dv.status == 'DRAFTED' %}badge-pending{% else %}badge-approved{% endif %}">AO Draft</span> →
+                <span class="badge {% if dv.status == 'WAITING_OBR' %}badge-pending{% elif dv.status == 'DRAFTED' %}badge-draft{% else %}badge-approved{% endif %}">Awaiting ObR</span> →
+                <span class="badge {% if dv.status == 'UNIT_HEAD_APPROVED' %}badge-pending{% elif dv.status in 'DRAFTED WAITING_OBR' %}badge-draft{% else %}badge-approved{% endif %}">Unit Head</span> →
+                <span class="badge {% if dv.status == 'SAO_RECEIVED' %}badge-pending{% elif dv.status in 'DRAFTED WAITING_OBR UNIT_HEAD_APPROVED' %}badge-draft{% else %}badge-approved{% endif %}">SAO Received</span> →
+                <span class="badge {% if dv.status == 'SAO_PRE_AUDIT' %}badge-pending{% elif dv.status in 'DRAFTED WAITING_OBR UNIT_HEAD_APPROVED SAO_RECEIVED' %}badge-draft{% else %}badge-approved{% endif %}">Pre-Audited</span> →
+                <span class="badge {% if dv.status == 'SAO_SUPERVISOR' %}badge-pending{% elif dv.status in 'DRAFTED WAITING_OBR UNIT_HEAD_APPROVED SAO_RECEIVED SAO_PRE_AUDIT' %}badge-draft{% else %}badge-approved{% endif %}">Supervisor Approved</span> →
+                <span class="badge {% if dv.status == 'CASH_MONITORED' %}badge-pending{% elif dv.status in 'DRAFTED WAITING_OBR UNIT_HEAD_APPROVED SAO_RECEIVED SAO_PRE_AUDIT SAO_SUPERVISOR' %}badge-draft{% else %}badge-approved{% endif %}">Cash Monitored</span> →
+                <span class="badge {% if dv.status == 'SAO_DIRECTOR' %}badge-pending{% elif dv.status in 'DRAFTED WAITING_OBR UNIT_HEAD_APPROVED SAO_RECEIVED SAO_PRE_AUDIT SAO_SUPERVISOR CASH_MONITORED' %}badge-draft{% else %}badge-approved{% endif %}">Director Approved</span> →
+                <span class="badge {% if dv.status == 'APPROVED' %}badge-pending{% elif dv.status in 'DRAFTED WAITING_OBR UNIT_HEAD_APPROVED SAO_RECEIVED SAO_PRE_AUDIT SAO_SUPERVISOR CASH_MONITORED SAO_DIRECTOR' %}badge-draft{% else %}badge-approved{% endif %}">VP Approved</span> →
+                <span class="badge {% if dv.status == 'RADA_DRAFT' %}badge-approved{% else %}badge-draft{% endif %}">RADA COMPLETE</span>
+            </div>
+
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Status Changed</th>
+                        <th>User Name</th>
+                        <th>Department</th>
+                        <th>Timestamp</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td><strong>{{ log.get_status_to_display }}</strong></td>
+                        <td>{{ log.changed_by.get_full_name }}</td>
+                        <td>{{ log.changed_by.profile.unit_code }}</td>
+                        <td>{{ log.changed_at|date:"d M Y, h:i A" }}</td>
+                        <td><span style="color: var(--text-secondary); font-style: italic;">{{ log.remarks }}</span></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: var(--text-muted);">No logs registered.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

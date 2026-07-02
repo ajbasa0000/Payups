@@ -1,0 +1,12 @@
+*.pyc
+__pycache__/
+venv/
+db.sqlite3
+media/contracts/
+media/signatures/
+media/uploads/
+.idea/
+.vscode/
+.DS_Store
+*.log
+*.tmp

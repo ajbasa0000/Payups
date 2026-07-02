@@ -1,0 +1,142 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PayUPS - Payroll Management{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-logo">₱</div>
+                <div>
+                    <h2 class="brand-text">PayUPS</h2>
+                    <span class="brand-subtext">UP System Payroll</span>
+                </div>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li class="menu-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <a href="{% url 'dashboard' %}">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                        </svg>
+                        Dashboard
+                    </a>
+                </li>
+                <li class="menu-item {% if 'voucher' in request.path or 'obr' in request.path %}active{% endif %}">
+                    <a href="{% url 'dashboard' %}#transactions">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        DV & ObR Processing
+                    </a>
+                </li>
+                <li class="menu-item {% if 'contract' in request.path %}active{% endif %}">
+                    <a href="{% url 'contracts_list' %}">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path>
+                        </svg>
+                        Contract Repository
+                    </a>
+                </li>
+                <li class="menu-item {% if 'employee' in request.path %}active{% endif %}">
+                    <a href="{% url 'employees_list' %}">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        Employee Masterlist
+                    </a>
+                </li>
+                <li class="menu-item {% if 'general-payroll' in request.path %}active{% endif %}">
+                    <a href="{% url 'general_payroll_list' %}">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m32-2v-2a4 4 0 00-4-4h-3a4 4 0 00-4 4v2M9 8a3 3 0 11-6 0 3 3 0 016 0zm18 0a3 3 0 11-6 0 3 3 0 016 0zM12 17v-4m0 0a2 2 0 100-4 2 2 0 000 4z"></path>
+                        </svg>
+                        General Payroll
+                    </a>
+                </li>
+                <li class="menu-item {% if 'memo' in request.path %}active{% endif %}">
+                    <a href="{% url 'memos_viewer' %}">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
+                        Onboarding Memos
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- Sidebar User / Profile -->
+            <div class="sidebar-user">
+                <div class="user-avatar">
+                    {{ request.user.first_name|slice:":1" }}{{ request.user.last_name|slice:":1" }}
+                </div>
+                <div class="user-info">
+                    <div class="user-name">{{ request.user.get_full_name }}</div>
+                    <div class="user-role">{{ request.user.profile.get_role_display }}</div>
+                </div>
+                <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" style="background: none; border: none; cursor: pointer; color: var(--text-secondary);">
+                        <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </aside>
+        
+        <!-- Main Panel -->
+        <main class="main-content">
+            <!-- Top Navbar -->
+            <header class="top-navbar">
+                <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                
+                <div class="action-row">
+                    <!-- Quick Prototype Role Swapper -->
+                    <div style="display: flex; align-items: center; gap: 0.5rem; background-color: var(--up-maroon-light); padding: 0.35rem 0.75rem; border-radius: var(--radius-sm); border: 1px dashed var(--up-maroon);">
+                        <span style="font-size: 0.75rem; font-weight: 700; color: var(--up-maroon);">Role Swapper (Demo Only):</span>
+                        <select onchange="location.href='{% url 'switch_role' %}?username=' + this.value" style="font-size: 0.8rem; padding: 2px; border: 1px solid var(--border-color); border-radius: 3px; font-weight: 600;">
+                            <option value="">-- Switch Account --</option>
+                            <option value="ao" {% if request.user.username == 'ao' %}selected{% endif %}>Unit AO (Ruby Wadawad)</option>
+                            <option value="unithead" {% if request.user.username == 'unithead' %}selected{% endif %}>Unit Head (Isagani Bagus)</option>
+                            <option value="sbo_officer" {% if request.user.username == 'sbo_officer' %}selected{% endif %}>SBO Officer (Arvin De Los Santos)</option>
+                            <option value="sbo_supervisor" {% if request.user.username == 'sbo_supervisor' %}selected{% endif %}>SBO Supervisor (Leah Cenicio)</option>
+                            <option value="sbo_director" {% if request.user.username == 'sbo_director' %}selected{% endif %}>SBO Director (Noreen Escultura)</option>
+                            <option value="receiving" {% if request.user.username == 'receiving' %}selected{% endif %}>SAO Receiving (Dia-Lyn Baluyut)</option>
+                            <option value="preaudit" {% if request.user.username == 'preaudit' %}selected{% endif %}>SAO Pre-Audit (Melissa Beldia)</option>
+                            <option value="payrollsup" {% if request.user.username == 'payrollsup' %}selected{% endif %}>SAO Supervisor (Shirley Cabrera)</option>
+                            <option value="cashmoni" {% if request.user.username == 'cashmoni' %}selected{% endif %}>Cash Monitoring (Antonio Ramilo)</option>
+                            <option value="director" {% if request.user.username == 'director' %}selected{% endif %}>SAO Director (Ronnie Pagal)</option>
+                            <option value="vp" {% if request.user.username == 'vp' %}selected{% endif %}>VP OVPA (Augustus Resurreccion)</option>
+                            <option value="sco" {% if request.user.username == 'sco' %}selected{% endif %}>Cash Office / RADA (Clenia Delos Santos)</option>
+                            <option value="admin" {% if request.user.username == 'admin' %}selected{% endif %}>[Superuser] Admin (Override Bypass)</option>
+                        </select>
+                    </div>
+                </div>
+
+            </header>
+            
+            <!-- Page Content -->
+            <div class="content-container">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="badge badge-info" style="margin-bottom: 1rem; padding: 0.75rem 1rem; display: block; border-radius: var(--radius-sm); font-size: 0.875rem;">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

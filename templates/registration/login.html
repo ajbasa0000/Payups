@@ -1,0 +1,150 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - PayUPS</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        .login-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: var(--bg-slate);
+            padding: 1rem;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            padding: 2.5rem;
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .login-logo {
+            width: 60px;
+            height: 60px;
+            background-color: var(--up-maroon);
+            color: white;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 0 auto 1rem;
+            box-shadow: 0 4px 10px rgba(123, 17, 19, 0.3);
+        }
+        .sso-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            width: 100%;
+            padding: 0.75rem;
+            background-color: white;
+            border: 1px solid #dadce0;
+            color: #3c4043;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            margin-bottom: 1.5rem;
+            transition: background-color 0.2s;
+        }
+        .sso-btn:hover {
+            background-color: #f8f9fa;
+        }
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .divider:not(:empty)::before { margin-right: .5em; }
+        .divider:not(:empty)::after { margin-left: .5em; }
+        .demo-accounts {
+            margin-top: 1.5rem;
+            background-color: var(--bg-slate);
+            border: 1px dashed var(--border-color);
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">₱</div>
+                <h1 class="brand-text" style="font-size: 1.75rem; margin-bottom: 0.25rem; color: var(--up-maroon);">PayUPS</h1>
+                <p style="color: var(--text-secondary); font-size: 0.875rem;">UP System Payroll Management Portal</p>
+            </div>
+
+            <!-- Google SSO Placeholder -->
+            <button class="sso-btn" onclick="alert('Google Single Sign-On (UP Mail) integration will be configured in production.')">
+                <svg style="width: 18px; height: 18px;" viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
+                    <g transform="matrix(1, 0, 0, 1, 0, 0)">
+                        <path d="M21.35,11.1H12v2.7h5.38C17.1,15.1,15.89,16.1,14.3,16.8l3.11,2.42c1.8-1.66,2.94-4.1,2.94-7.02c0-.5-.05-1.1-.11-1.61" fill="#4285f4"/>
+                        <path d="M12,20.4c2.7,0,5-1.1,6.6-2.9l-3.11-2.42c-.9,.6-2,.99-3.49,.99c-2.69,0-5-1.81-5.81-4.22L3.1,14.28c1.69,3.39,5.19,6.12,8.9,6.12" fill="#34a853"/>
+                        <path d="M6.19,11.85c-.2-.6-.31-1.25-.31-1.85s.11-1.25,.31-1.85L3.1,5.74C2.4,7.14,2,8.74,2,10s.4,2.86,1.1,4.26l3.09-2.41" fill="#fbbc05"/>
+                        <path d="M12,5.6c1.49,0,2.8,.5,3.8,1.5l2.9-2.9C17,2.5,14.7,1.6,12,1.6c-3.71,0-7.21,2.73-8.9,6.12l3.09,2.41c.81-2.41,3.12-4.22,5.81-4.22" fill="#ea4335"/>
+                    </g>
+                </svg>
+                Sign in with Google (UP Mail)
+            </button>
+
+            <div class="divider">or use administrative login</div>
+
+            <form method="post" action="{% url 'login' %}">
+                {% csrf_token %}
+                {% if form.errors %}
+                    <div style="color: var(--up-maroon); font-size: 0.8rem; margin-bottom: 1rem; text-align: center;">
+                        Invalid username or password. Please try again.
+                    </div>
+                {% endif %}
+                
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label class="form-label" for="username">Username</label>
+                    <input class="form-control" type="text" name="username" id="username" placeholder="e.g. ao" required>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label class="form-label" for="password">Password</label>
+                    <input class="form-control" type="password" name="password" id="password" placeholder="••••••••" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem;">Log In</button>
+            </form>
+
+            <div class="demo-accounts">
+                <strong style="color: var(--up-maroon); display: block; margin-bottom: 0.25rem;">Quick Demo Accounts:</strong>
+                <span style="color: var(--text-secondary); display: block; line-height: 1.4;">
+                    • <strong>ao</strong> (Unit AO) | <strong>unithead</strong> (Unit Head)<br>
+                    • <strong>sbo_officer</strong> | <strong>sbo_supervisor</strong> | <strong>sbo_director</strong> (SBO)<br>
+                    • <strong>preaudit</strong> (SAO Pre-Audit) | <strong>director</strong> (SAO Director)<br>
+                    • <strong>vp</strong> (VP OVPA) | <strong>sco</strong> (SCO Cash Office)<br>
+                    Password for all: <strong>password123</strong>
+                </span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
