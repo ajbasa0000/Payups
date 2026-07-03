@@ -55,12 +55,33 @@ def dashboard(request):
     elif role == Role.SCO_STAFF:
         action_dvs = dvs.filter(status=DVStatus.APPROVED)
 
+    # Compute KPI values
+    total_payroll_amount = sum(dv.total_amount for dv in dvs)
+    avg_payroll_amount = total_payroll_amount / dvs.count() if dvs.exists() else 0.0
+
     stats = {
         'total_dvs': dvs.count(),
         'pending_dvs': dvs.exclude(status=DVStatus.RADA_DRAFT).count(),
         'completed_dvs': dvs.filter(status=DVStatus.RADA_DRAFT).count(),
         'total_obrs': obrs.count(),
+        'total_payroll_amount': float(total_payroll_amount),
+        'avg_payroll_amount': float(avg_payroll_amount),
     }
+
+    # Chart Data 1: Status Distribution
+    status_counts = {}
+    for code, label in DVStatus.choices:
+        count = dvs.filter(status=code).count()
+        if count > 0:
+            status_counts[label] = count
+
+    # Chart Data 2: Top 5 Requesting Departments
+    dept_volumes = {}
+    for dept_code, dept_label in Department.choices:
+        vol = sum(dv.total_amount for dv in dvs.filter(requesting_unit=dept_code))
+        if vol > 0:
+            dept_volumes[dept_label] = float(vol)
+    top_departments = dict(sorted(dept_volumes.items(), key=lambda x: x[1], reverse=True)[:5])
 
     general_payrolls = None
     if role == Role.UNIT_AO or request.user.is_superuser:
@@ -73,8 +94,117 @@ def dashboard(request):
         'action_dvs': action_dvs,
         'stats': stats,
         'general_payrolls': general_payrolls,
+        'status_chart_labels': list(status_counts.keys()),
+        'status_chart_data': list(status_counts.values()),
+        'dept_chart_labels': list(top_departments.keys()),
+        'dept_chart_data': list(top_departments.values()),
     }
     return render(request, 'payroll/dashboard.html', context)
+
+
+@login_required
+def transactions_list(request):
+    search_query = request.GET.get('search', '')
+    transaction_type = request.GET.get('type', 'ALL')
+    status_filter = request.GET.get('status', '')
+    unit_filter = request.GET.get('unit', '')
+
+    items = []
+
+    # Query source models
+    dvs = DisbursementVoucher.objects.all().order_by('-transaction_date', '-id')
+    obrs = ObligationRequest.objects.all().order_by('-transaction_date', '-id')
+
+    if search_query:
+        dvs = dvs.filter(Q(dv_number__icontains=search_query) | Q(requesting_unit__icontains=search_query))
+        obrs = obrs.filter(Q(obr_number__icontains=search_query) | Q(requesting_unit__icontains=search_query))
+
+    if unit_filter:
+        dvs = dvs.filter(requesting_unit=unit_filter)
+        obrs = obrs.filter(requesting_unit=unit_filter)
+
+    if status_filter:
+        dvs = dvs.filter(status=status_filter)
+        obrs = obrs.filter(status=status_filter)
+
+    # Format list depending on selected transaction type
+    if transaction_type == 'DV':
+        for dv in dvs:
+            items.append({
+                'type': 'DV',
+                'ref_number': dv.dv_number,
+                'requesting_unit': dv.requesting_unit,
+                'amount': dv.total_amount,
+                'status': dv.get_status_display(),
+                'status_code': dv.status,
+                'date': dv.transaction_date,
+                'url': f"/dv/{dv.pk}/"
+            })
+    elif transaction_type == 'OBR':
+        for obr in obrs:
+            items.append({
+                'type': 'OBR',
+                'ref_number': obr.obr_number,
+                'requesting_unit': obr.requesting_unit,
+                'amount': obr.total_amount,
+                'status': obr.get_status_display(),
+                'status_code': obr.status,
+                'date': obr.transaction_date,
+                'url': f"/obr/{obr.pk}/"
+            })
+    else:
+        # ALL
+        for dv in dvs:
+            items.append({
+                'type': 'DV',
+                'ref_number': dv.dv_number,
+                'requesting_unit': dv.requesting_unit,
+                'amount': dv.total_amount,
+                'status': dv.get_status_display(),
+                'status_code': dv.status,
+                'date': dv.transaction_date,
+                'url': f"/dv/{dv.pk}/"
+            })
+        for obr in obrs:
+            items.append({
+                'type': 'OBR',
+                'ref_number': obr.obr_number,
+                'requesting_unit': obr.requesting_unit,
+                'amount': obr.total_amount,
+                'status': obr.get_status_display(),
+                'status_code': obr.status,
+                'date': obr.transaction_date,
+                'url': f"/obr/{obr.pk}/"
+            })
+        # Sort combined list by date
+        items.sort(key=lambda x: (x['date'] or datetime.date.min), reverse=True)
+
+    # Page processing (20 items per page)
+    paginator = Paginator(items, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Rebuilding choices lists for filtering
+    departments = Department.choices
+    statuses = list(DVStatus.choices) + list(ObRStatus.choices)
+    
+    unique_statuses = []
+    seen = set()
+    for code, label in statuses:
+        if code not in seen:
+            seen.add(code)
+            unique_statuses.append((code, label))
+
+    context = {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'transaction_type': transaction_type,
+        'status_filter': status_filter,
+        'unit_filter': unit_filter,
+        'departments': departments,
+        'statuses': unique_statuses,
+    }
+    return render(request, 'payroll/transactions_list.html', context)
 
 def switch_role(request):
     username = request.GET.get('username')

@@ -4,11 +4,12 @@
 {% block page_title %}System Dashboard{% endblock %}
 
 {% block content %}
-<!-- Stats Grid -->
-<div class="form-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 2rem;">
+<!-- Stats Grid & KPIs -->
+<div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 2rem; gap: 1.25rem;">
+    <!-- total dvs -->
     <div class="container-card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
         <div style="background-color: var(--up-maroon-light); color: var(--up-maroon); width: 48px; height: 48px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold;">
-            V
+            ₱
         </div>
         <div>
             <span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Disbursement Vouchers</span>
@@ -16,19 +17,21 @@
         </div>
     </div>
     
+    <!-- pending reviews -->
     <div class="container-card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
         <div style="background-color: var(--up-gold-light); color: var(--up-gold); width: 48px; height: 48px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold;">
-            P
+            ⏱
         </div>
         <div>
-            <span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Pending SAO Review</span>
+            <span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Pending Reviews</span>
             <h3 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">{{ stats.pending_dvs }}</h3>
         </div>
     </div>
 
+    <!-- completed dvs -->
     <div class="container-card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
         <div style="background-color: var(--up-forest-light); color: var(--up-forest); width: 48px; height: 48px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold;">
-            C
+            ✓
         </div>
         <div>
             <span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Completed (RADA)</span>
@@ -36,18 +39,98 @@
         </div>
     </div>
 
+    <!-- obligation requests -->
     <div class="container-card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
         <div style="background-color: #eff6ff; color: #1e40af; width: 48px; height: 48px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold;">
-            O
+            ⎋
         </div>
         <div>
             <span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Obligation Requests</span>
             <h3 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">{{ stats.total_obrs }}</h3>
         </div>
     </div>
+
+    <!-- total budget volume KPI -->
+    <div class="container-card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem; border-left: 4px solid var(--up-maroon);">
+        <div style="background-color: #f5f5f4; color: #44403c; width: 48px; height: 48px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold;">
+            🔀
+        </div>
+        <div>
+            <span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Total Payroll Volume</span>
+            <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary);">PhP {{ stats.total_payroll_amount|floatformat:2 }}</h3>
+        </div>
+    </div>
+
+    <!-- average voucher size KPI -->
+    <div class="container-card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem; border-left: 4px solid var(--up-gold);">
+        <div style="background-color: #fafaf9; color: #78716c; width: 48px; height: 48px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold;">
+            ⚖
+        </div>
+        <div>
+            <span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Avg Voucher Value</span>
+            <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary);">PhP {{ stats.avg_payroll_amount|floatformat:2 }}</h3>
+        </div>
+    </div>
 </div>
 
-<!-- Quick Action for AO -->
+<!-- 1. Action Required Box (Moved to Top) -->
+<div class="container-card" style="margin-bottom: 2rem; border-left: 5px solid var(--up-gold); box-shadow: var(--shadow-md);">
+    <div class="card-header" style="background-color: #fffbeb;">
+        <h3 class="card-title" style="color: #92400e; font-weight: 700;">Pending Action Required (Your Role: {{ request.user.profile.get_role_display }})</h3>
+        <span class="badge badge-pending" style="background-color: #feebc8; color: #c05621; font-weight: 700;">{{ action_obrs.count|add:action_dvs.count }} Items</span>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Reference Code</th>
+                        <th>Requesting Unit</th>
+                        <th>Total Amount</th>
+                        <th>Current Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for obr in action_obrs %}
+                    <tr>
+                        <td><span class="badge badge-info">ObR / BUR</span></td>
+                        <td><strong>{{ obr.obr_number }}</strong></td>
+                        <td>{{ obr.requesting_unit }}</td>
+                        <td>PhP {{ obr.total_amount }}</td>
+                        <td><span class="badge badge-pending">{{ obr.get_status_display }}</span></td>
+                        <td><a href="{% url 'obr_view' obr.pk %}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem; background-color: var(--up-gold-light); color: var(--up-gold); border-color: var(--up-gold);">Review Request</a></td>
+                    </tr>
+                    {% empty %}
+                    {% endfor %}
+                    
+                    {% for dv in action_dvs %}
+                    <tr>
+                        <td><span class="badge badge-approved" style="background-color: var(--up-maroon-light); color: var(--up-maroon);">DV Voucher</span></td>
+                        <td><strong>{{ dv.dv_number }}</strong></td>
+                        <td>{{ dv.requesting_unit }}</td>
+                        <td>PhP {{ dv.total_amount }}</td>
+                        <td><span class="badge badge-pending">{{ dv.get_status_display }}</span></td>
+                        <td><a href="{% url 'dv_view' dv.pk %}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem; background-color: var(--up-maroon-light); color: var(--up-maroon); border-color: var(--up-maroon);">Review Voucher</a></td>
+                    </tr>
+                    {% empty %}
+                    {% endfor %}
+                    
+                    {% if not action_obrs and not action_dvs %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2.5rem; font-style: italic; font-weight: 500;">
+                            No pending files require your signature or review at this time.
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 2. Quick Action for AO (if role matches) -->
 {% if request.user.profile.role == 'UNIT_AO' %}
 <div class="container-card" style="margin-bottom: 2rem; border-left: 5px solid var(--up-maroon);">
     <div class="card-header" style="background-color: var(--up-maroon-light);">
@@ -93,131 +176,139 @@
 </div>
 {% endif %}
 
-<!-- Action Required Box -->
-<div class="container-card" style="margin-bottom: 2rem; border-left: 5px solid var(--up-gold);">
-    <div class="card-header">
-        <h3 class="card-title">Pending Action Required (Your Role: {{ request.user.profile.get_role_display }})</h3>
-        <span class="badge badge-pending">{{ action_obrs.count|add:action_dvs.count }} Items</span>
+<!-- 3. KPI Insights and Interactive Charts Panel -->
+<div class="pre-audit-split" style="margin-bottom: 2rem;">
+    <!-- Chart Card 1: DV Status Breakdown -->
+    <div class="container-card" style="padding: 1.5rem; display: flex; flex-direction: column; min-height: 380px;">
+        <h3 class="card-title" style="margin-bottom: 1rem; color: var(--up-maroon); font-weight: 700;">Voucher Status Distribution</h3>
+        <div style="flex: 1; position: relative; display: flex; align-items: center; justify-content: center;">
+            <canvas id="statusChart" style="max-height: 280px; max-width: 280px;"></canvas>
+        </div>
     </div>
-    <div class="card-body" style="padding: 0;">
-        <div class="table-responsive">
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th>Type</th>
-                        <th>Reference Code</th>
-                        <th>Requesting Unit</th>
-                        <th>Total Amount</th>
-                        <th>Current Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for obr in action_obrs %}
-                    <tr>
-                        <td><span class="badge badge-info">ObR / BUR</span></td>
-                        <td><strong>{{ obr.obr_number }}</strong></td>
-                        <td>{{ obr.requesting_unit }}</td>
-                        <td>PhP {{ obr.total_amount }}</td>
-                        <td><span class="badge badge-pending">{{ obr.get_status_display }}</span></td>
-                        <td><a href="{% url 'obr_view' obr.pk %}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;">Review Request</a></td>
-                    </tr>
-                    {% empty %}
-                    {% endfor %}
-                    
-                    {% for dv in action_dvs %}
-                    <tr>
-                        <td><span class="badge badge-approved" style="background-color: var(--up-maroon-light); color: var(--up-maroon);">DV Voucher</span></td>
-                        <td><strong>{{ dv.dv_number }}</strong></td>
-                        <td>{{ dv.requesting_unit }}</td>
-                        <td>PhP {{ dv.total_amount }}</td>
-                        <td><span class="badge badge-pending">{{ dv.get_status_display }}</span></td>
-                        <td><a href="{% url 'dv_view' dv.pk %}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;">Review Voucher</a></td>
-                    </tr>
-                    {% empty %}
-                    {% endfor %}
-                    
-                    {% if not action_obrs and not action_dvs %}
-                    <tr>
-                        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">
-                            No pending files require your signature or review at this time.
-                        </td>
-                    </tr>
-                    {% endif %}
-                </tbody>
-            </table>
+
+    <!-- Chart Card 2: Top Departments by Amount -->
+    <div class="container-card" style="padding: 1.5rem; display: flex; flex-direction: column; min-height: 380px;">
+        <h3 class="card-title" style="margin-bottom: 1rem; color: var(--up-maroon); font-weight: 700;">Top 5 Requesting Departments (Volume in PhP)</h3>
+        <div style="flex: 1; position: relative; display: flex; align-items: center; justify-content: center; width: 100%;">
+            <canvas id="deptChart" style="max-height: 280px;"></canvas>
         </div>
     </div>
 </div>
 
-<!-- All Transactions -->
-<div id="transactions" class="container-card">
-    <div class="card-header">
-        <h3 class="card-title">All System Transactions</h3>
-    </div>
-    <div class="card-body" style="padding: 0;">
-        <div class="table-responsive">
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th>Type</th>
-                        <th>Reference Number</th>
-                        <th>Requesting Unit</th>
-                        <th>Amount</th>
-                        <th>Status</th>
-                        <th>Date Registered</th>
-                        <th>Details</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for dv in dvs %}
-                    <tr>
-                        <td><span class="badge" style="background-color: var(--up-maroon-light); color: var(--up-maroon);">Disbursement Voucher</span></td>
-                        <td><strong>{{ dv.dv_number }}</strong></td>
-                        <td>{{ dv.requesting_unit }}</td>
-                        <td>PhP {{ dv.total_amount }}</td>
-                        <td>
-                            {% if dv.status == 'RADA_DRAFT' %}
-                                <span class="badge badge-approved">Completed (RADA)</span>
-                            {% elif dv.status == 'DRAFTED' %}
-                                <span class="badge badge-draft">Draft</span>
-                            {% else %}
-                                <span class="badge badge-pending">{{ dv.get_status_display }}</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ dv.transaction_date }}</td>
-                        <td><a href="{% url 'dv_view' dv.pk %}" style="color: var(--up-maroon); font-weight: 600; text-decoration: none;">View Form →</a></td>
-                    </tr>
-                    {% endfor %}
-                    
-                    {% for obr in obrs %}
-                    <tr>
-                        <td><span class="badge badge-info">Obligation Request</span></td>
-                        <td><strong>{{ obr.obr_number }}</strong></td>
-                        <td>{{ obr.requesting_unit }}</td>
-                        <td>PhP {{ obr.total_amount }}</td>
-                        <td>
-                            {% if obr.status == 'APPROVED' %}
-                                <span class="badge badge-approved">Approved (Certified)</span>
-                            {% elif obr.status == 'DRAFTED' %}
-                                <span class="badge badge-draft">Draft</span>
-                            {% else %}
-                                <span class="badge badge-pending">{{ obr.get_status_display }}</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ obr.transaction_date }}</td>
-                        <td><a href="{% url 'obr_view' obr.pk %}" style="color: var(--up-maroon); font-weight: 600; text-decoration: none;">View Form →</a></td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">
-                            No active transactions in the database.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Render Chart 1: Status Distribution
+        const ctxStatus = document.getElementById('statusChart').getContext('2d');
+        const statusLabels = {{ status_chart_labels|safe }};
+        const statusData = {{ status_chart_data|safe }};
+
+        new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusData,
+                    backgroundColor: [
+                        '#7b1113', // Maroon
+                        '#c39a34', // Gold
+                        '#0b5936', // Forest Green
+                        '#3b82f6', // Blue
+                        '#f97316', // Orange
+                        '#8b5cf6', // Purple
+                        '#64748b'  // Slate
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: {
+                                family: 'Plus Jakarta Sans',
+                                size: 10
+                            },
+                            boxWidth: 12
+                        }
+                    }
+                }
+            }
+        });
+
+        // Render Chart 2: Top Requesting Departments
+        const ctxDept = document.getElementById('deptChart').getContext('2d');
+        const deptLabels = {{ dept_chart_labels|safe }};
+        const deptData = {{ dept_chart_data|safe }};
+
+        new Chart(ctxDept, {
+            type: 'bar',
+            data: {
+                labels: deptLabels.map(label => label.length > 15 ? label.substring(0, 15) + '...' : label),
+                datasets: [{
+                    label: 'Total Expenses (PhP)',
+                    data: deptData,
+                    backgroundColor: '#7b1113',
+                    borderRadius: 6,
+                    maxBarThickness: 32
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function(context) {
+                                return deptLabels[context[0].dataIndex];
+                            },
+                            label: function(context) {
+                                return 'PhP ' + context.raw.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: '#f1f5f9'
+                        },
+                        ticks: {
+                            font: {
+                                family: 'Plus Jakarta Sans',
+                                size: 10
+                            },
+                            callback: function(value) {
+                                return '₱' + value.toLocaleString();
+                            }
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                family: 'Plus Jakarta Sans',
+                                size: 9
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
 {% endblock %}

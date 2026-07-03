@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block title %}Transactions Log - PayUPS{% endblock %}
+{% block page_title %}DV & ObR Transactions Processing{% endblock %}
+
+{% block content %}
+<!-- Filtering & Search Panel -->
+<div class="container-card" style="margin-bottom: 2rem; border-top: 4px solid var(--up-maroon);">
+    <form method="get" action="{% url 'transactions_list' %}" style="padding: 1.25rem;">
+        <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: flex-end;">
+            
+            <!-- Search Text -->
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary);">Search Reference / Unit</label>
+                <input type="text" name="search" class="form-control" placeholder="e.g. ORS1-UPSA, SPMO" value="{{ search_query }}" style="font-size: 0.85rem; padding: 0.6rem 0.8rem; border-color: var(--border-color);">
+            </div>
+            
+            <!-- Transaction Type -->
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary);">Transaction Type</label>
+                <select name="type" class="form-control" style="font-size: 0.85rem; padding: 0.6rem; border-color: var(--border-color);">
+                    <option value="ALL" {% if transaction_type == 'ALL' %}selected{% endif %}>All Transactions</option>
+                    <option value="DV" {% if transaction_type == 'DV' %}selected{% endif %}>Disbursement Vouchers</option>
+                    <option value="OBR" {% if transaction_type == 'OBR' %}selected{% endif %}>Obligation Requests</option>
+                </select>
+            </div>
+
+            <!-- Department Filter -->
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary);">Requesting Unit</label>
+                <select name="unit" class="form-control" style="font-size: 0.85rem; padding: 0.6rem; border-color: var(--border-color);">
+                    <option value="">-- All Units --</option>
+                    {% for code, label in departments %}
+                        <option value="{{ code }}" {% if unit_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary);">Workflow Status</label>
+                <select name="status" class="form-control" style="font-size: 0.85rem; padding: 0.6rem; border-color: var(--border-color);">
+                    <option value="">-- All Statuses --</option>
+                    {% for code, label in statuses %}
+                        <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                <button type="submit" class="btn btn-primary" style="padding: 0.65rem 1.25rem; font-size: 0.85rem;">
+                    Apply Filters
+                </button>
+                <a href="{% url 'transactions_list' %}" class="btn btn-secondary" style="padding: 0.65rem 1.25rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; text-decoration: none;">
+                    Clear
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Transactions Table List -->
+<div class="container-card">
+    <div class="card-header">
+        <h3 class="card-title">Transactions Ledger</h3>
+        <span class="badge badge-info" style="font-size: 0.75rem;">Showing {{ page_obj.object_list|length }} of {{ page_obj.paginator.count }} matches</span>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Reference Code</th>
+                        <th>Requesting Unit</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Date Registered</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in page_obj %}
+                    <tr>
+                        <td>
+                            {% if item.type == 'DV' %}
+                                <span class="badge" style="background-color: var(--up-maroon-light); color: var(--up-maroon);">Disbursement Voucher</span>
+                            {% else %}
+                                <span class="badge badge-info">Obligation Request</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ item.ref_number }}</strong></td>
+                        <td>{{ item.requesting_unit }}</td>
+                        <td>PhP {{ item.amount }}</td>
+                        <td>
+                            {% if item.status_code == 'RADA_DRAFT' or item.status_code == 'APPROVED' %}
+                                <span class="badge badge-approved">{{ item.status }}</span>
+                            {% elif item.status_code == 'DRAFTED' %}
+                                <span class="badge badge-draft">Draft</span>
+                            {% else %}
+                                <span class="badge badge-pending">{{ item.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.date }}</td>
+                        <td>
+                            <a href="{{ item.url }}" style="color: var(--up-maroon); font-weight: 600; text-decoration: none; font-size: 0.9rem;">
+                                View Form →
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                            No transactions found matching the selected filter criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination Controls -->
+{% if page_obj.has_other_pages %}
+<div style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; background: white; padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+    <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 500;">
+        Showing page <strong>{{ page_obj.number }}</strong> of <strong>{{ page_obj.paginator.num_pages }}</strong>
+    </span>
+    <div style="display: flex; gap: 0.25rem;">
+        {% if page_obj.has_previous %}
+            <a href="?page=1&search={{ search_query }}&type={{ transaction_type }}&unit={{ unit_filter }}&status={{ status_filter }}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; text-decoration: none;">&laquo; First</a>
+            <a href="?page={{ page_obj.previous_page_number }}&search={{ search_query }}&type={{ transaction_type }}&unit={{ unit_filter }}&status={{ status_filter }}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; text-decoration: none;">Previous</a>
+        {% endif %}
+
+        <span class="btn btn-primary" style="padding: 4px 10px; font-size: 0.75rem; background-color: var(--up-maroon); color: white; border: none; cursor: default;">{{ page_obj.number }}</span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&search={{ search_query }}&type={{ transaction_type }}&unit={{ unit_filter }}&status={{ status_filter }}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; text-decoration: none;">Next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}&search={{ search_query }}&type={{ transaction_type }}&unit={{ unit_filter }}&status={{ status_filter }}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem; text-decoration: none;">Last &raquo;</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
