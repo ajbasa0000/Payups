@@ -100,7 +100,10 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                         </svg>
                     </button>
-                    <h1 class="page-title" style="margin-bottom: 0;">{% block page_title %}Dashboard{% endblock %}</h1>
+                    <div style="display: flex; flex-direction: column;">
+                        <h1 class="page-title" style="margin-bottom: 0; line-height: 1.2;">{% block page_title %}Dashboard{% endblock %}</h1>
+                        <p class="page-subtitle" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px; font-weight: 500;">{% block page_subtitle %}Overview of system statistics and tasks requiring your review{% endblock %}</p>
+                    </div>
                 </div>
                 
                 <div class="action-row">
