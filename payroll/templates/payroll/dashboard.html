@@ -50,25 +50,14 @@
         </div>
     </div>
 
-    <!-- total budget volume KPI -->
+    <!-- total number of COS KPI -->
     <div class="container-card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem; border-left: 4px solid var(--up-maroon);">
-        <div style="background-color: #f5f5f4; color: #44403c; width: 48px; height: 48px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold;">
-            🔀
+        <div style="background-color: var(--up-maroon-light); color: var(--up-maroon); width: 48px; height: 48px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold;">
+            👥
         </div>
         <div>
-            <span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Total Payroll Volume</span>
-            <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary);">PhP {{ stats.total_payroll_amount|floatformat:2 }}</h3>
-        </div>
-    </div>
-
-    <!-- average voucher size KPI -->
-    <div class="container-card" style="padding: 1.25rem; display: flex; align-items: center; gap: 1rem; border-left: 4px solid var(--up-gold);">
-        <div style="background-color: #fafaf9; color: #78716c; width: 48px; height: 48px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold;">
-            ⚖
-        </div>
-        <div>
-            <span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Avg Voucher Value</span>
-            <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary);">PhP {{ stats.avg_payroll_amount|floatformat:2 }}</h3>
+            <span style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Total number of COS</span>
+            <h3 style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">{{ stats.total_cos }}</h3>
         </div>
     </div>
 </div>

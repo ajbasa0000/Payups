@@ -56,16 +56,14 @@ def dashboard(request):
         action_dvs = dvs.filter(status=DVStatus.APPROVED)
 
     # Compute KPI values
-    total_payroll_amount = sum(dv.total_amount for dv in dvs)
-    avg_payroll_amount = total_payroll_amount / dvs.count() if dvs.exists() else 0.0
+    total_cos = Employee.objects.count()
 
     stats = {
         'total_dvs': dvs.count(),
         'pending_dvs': dvs.exclude(status=DVStatus.RADA_DRAFT).count(),
         'completed_dvs': dvs.filter(status=DVStatus.RADA_DRAFT).count(),
         'total_obrs': obrs.count(),
-        'total_payroll_amount': float(total_payroll_amount),
-        'avg_payroll_amount': float(avg_payroll_amount),
+        'total_cos': total_cos,
     }
 
     # Chart Data 1: Status Distribution
