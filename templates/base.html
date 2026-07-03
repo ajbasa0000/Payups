@@ -91,11 +91,21 @@
             </div>
         </aside>
         
+        <!-- Sidebar Overlay -->
+        <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleMobileSidebar()"></div>
+        
         <!-- Main Panel -->
         <main class="main-content">
             <!-- Top Navbar -->
             <header class="top-navbar">
-                <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                <div style="display: flex; align-items: center;">
+                    <button id="sidebar-toggle" onclick="toggleMobileSidebar()" style="background: none; border: none; cursor: pointer; color: var(--up-maroon); display: none; align-items: center; justify-content: center; margin-right: 0.75rem;">
+                        <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                    <h1 class="page-title" style="margin-bottom: 0;">{% block page_title %}Dashboard{% endblock %}</h1>
+                </div>
                 
                 <div class="action-row">
                     <!-- Quick Prototype Role Swapper -->
@@ -137,6 +147,17 @@
         </main>
     </div>
     
+    <script>
+        function toggleMobileSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar && overlay) {
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('active');
+            }
+        }
+    </script>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>
