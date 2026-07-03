@@ -13,6 +13,7 @@ from django.contrib.auth import login
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponseForbidden, FileResponse
 from django.utils import timezone
+from django.core.paginator import Paginator
 from .models import (
     Role, Employee, Contract, ObligationRequest, DisbursementVoucher, 
     DVPayeeDetail, WorkflowLog, ObRStatus, DVStatus, ContractType,
@@ -536,8 +537,21 @@ def contracts_list(request):
         
     contracts = contracts.order_by('employee__name')
     
+    # Pagination (25 items per page)
+    paginator = Paginator(contracts, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Build query string of active filters to preserve them in pagination links
+    query_params = request.GET.copy()
+    if 'page' in query_params:
+        del query_params['page']
+    url_params = query_params.urlencode()
+    
     context = {
-        'contracts': contracts,
+        'contracts': page_obj,
+        'page_obj': page_obj,
+        'url_params': url_params,
         'departments': Department.choices,
         'is_global': role not in [Role.UNIT_AO, Role.UNIT_HEAD] or request.user.is_superuser,
         'q': q,
@@ -580,8 +594,21 @@ def employees_list(request):
 
     employees = employees.order_by('name')
     
+    # Pagination (25 items per page)
+    paginator = Paginator(employees, 25)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Build query string of active filters to preserve them in pagination links
+    query_params = request.GET.copy()
+    if 'page' in query_params:
+        del query_params['page']
+    url_params = query_params.urlencode()
+    
     context = {
-        'employees': employees,
+        'employees': page_obj,
+        'page_obj': page_obj,
+        'url_params': url_params,
         'departments': Department.choices,
         'is_global': role not in [Role.UNIT_AO, Role.UNIT_HEAD] or request.user.is_superuser,
         'q': q,

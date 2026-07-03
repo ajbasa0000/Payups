@@ -92,6 +92,34 @@
                 {% endfor %}
             </tbody>
         </table>
+        
+        <!-- Pagination controls -->
+        {% if page_obj.has_other_pages %}
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); background-color: #ffffff;">
+            <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} entries
+            </div>
+            <div style="display: flex; gap: 0.25rem;">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1{% if url_params %}&{{ url_params }}{% endif %}" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;">« First</a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% if url_params %}&{{ url_params }}{% endif %}" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;">‹ Prev</a>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <span class="btn btn-primary" style="padding: 4px 10px; font-size: 0.75rem; background-color: var(--up-maroon); pointer-events: none; border-color: var(--up-maroon);">{{ num }}</span>
+                    {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+                        <a href="?page={{ num }}{% if url_params %}&{{ url_params }}{% endif %}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if url_params %}&{{ url_params }}{% endif %}" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;">Next ›</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}{% if url_params %}&{{ url_params }}{% endif %}" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;">Last »</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
