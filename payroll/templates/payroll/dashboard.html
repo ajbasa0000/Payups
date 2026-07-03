@@ -131,8 +131,8 @@
         </h3>
     </div>
     <div class="card-body" style="background-color: #fcfcfc;">
-        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
-            As a <strong>Unit Administrative Officer (AO)</strong>, you can upload the exported XML/JSON metadata payload or print PDF from the <strong>BULSA App</strong>. PayUPS will parse the document and automatically register the Disbursement Voucher (DV), Obligation Request (ObR), line items, and payee details.
+        <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1rem;">
+            Upload your BULSA export file and link it to a General Payroll sheet to automatically generate the Disbursement Voucher (DV) and Obligation Request (ObR).
         </p>
         <form action="{% url 'create_obr_dv' %}" method="post">
             {% csrf_token %}
