@@ -146,7 +146,7 @@ STORAGES = {
         "BACKEND": "payroll.storage.SupabaseStorage" if os.environ.get("SUPABASE_URL") else "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
 
