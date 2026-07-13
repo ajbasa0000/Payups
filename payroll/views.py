@@ -868,7 +868,65 @@ def general_payroll_create(request):
 @login_required
 def general_payroll_detail(request, pk):
     payroll = get_object_or_404(GeneralPayroll, pk=pk)
+    
+    # Handle POST Actions (Add/Remove)
+    if request.method == 'POST':
+        profile = request.user.profile
+        if profile.role not in [Role.UNIT_AO, Role.UNIT_HEAD] and not request.user.is_superuser:
+            return HttpResponseForbidden("Only authorized department officers can modify the payroll sheet.")
+            
+        action = request.POST.get('action')
+        if action == 'add_employee':
+            emp_id = request.POST.get('employee_id')
+            emp = get_object_or_404(Employee, id=emp_id)
+            
+            # Check if already exists in this payroll
+            if payroll.items.filter(employee=emp).exists():
+                messages.error(request, f"{emp.name} is already in this payroll sheet.")
+            else:
+                # Pre-calculate defaults
+                contract = Contract.objects.filter(employee=emp, is_active=True).first()
+                if contract:
+                    salary_basis = float(contract.monthly_rate if contract.rate_type == ContractType.MONTHLY else contract.daily_rate * 22)
+                else:
+                    salary_basis = 0.00
+                
+                no_of_days = 11.00
+                gross_salary = (salary_basis / 22) * no_of_days
+                
+                # Default deductions
+                philhealth = gross_salary * 0.05
+                ewt_5 = gross_salary * 0.05
+                total_deductions = philhealth + ewt_5
+                net_salary = gross_salary - total_deductions
+                
+                GeneralPayrollItem.objects.create(
+                    general_payroll=payroll,
+                    employee=emp,
+                    salary_basis=salary_basis,
+                    no_of_days=no_of_days,
+                    gross_salary=gross_salary,
+                    philhealth_deductions=philhealth,
+                    ewt_5=ewt_5,
+                    total_deductions=total_deductions,
+                    net_salary=net_salary
+                )
+                messages.success(request, f"Successfully added {emp.name} to the payroll sheet.")
+            return redirect('general_payroll_detail', pk=pk)
+            
+        elif action == 'delete_employee':
+            item_id = request.POST.get('item_id')
+            item = get_object_or_404(GeneralPayrollItem, id=item_id, general_payroll=payroll)
+            emp_name = item.employee.name
+            item.delete()
+            messages.success(request, f"Removed {emp_name} from the payroll sheet.")
+            return redirect('general_payroll_detail', pk=pk)
+
     items = payroll.items.all().order_by('employee__name')
+    
+    # Filter out employees already in this payroll
+    existing_emp_ids = items.values_list('employee_id', flat=True)
+    available_employees = Employee.objects.filter(department=payroll.department).exclude(id__in=existing_emp_ids).order_by('name')
     
     # Calculate totals
     totals = {
@@ -897,8 +955,10 @@ def general_payroll_detail(request, pk):
         'items': items,
         'totals': totals,
         'signatures': signatures,
+        'available_employees': available_employees,
     }
     return render(request, 'payroll/general_payroll_detail.html', context)
+
 
 @login_required
 def employee_create(request):

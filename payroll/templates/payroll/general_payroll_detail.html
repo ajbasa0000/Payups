@@ -1,14 +1,27 @@
-{% extends 'base.html' %}
-{% load static humanize %}
+<style>
+    @media print {
+        .no-print, .btn, .top-navbar, .sidebar, .sidebar-overlay, .app-layout {
+            display: none !important;
+        }
+        .app-layout {
+            display: block !important;
+        }
+        .main-content {
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+        }
+        .paper-document {
+            box-shadow: none !important;
+            border: none !important;
+            padding: 0 !important;
+        }
+    }
+</style>
 
-{% block title %}General Payroll Sheet - PayUPS{% endblock %}
-{% block page_title %}General Payroll Viewer{% endblock %}
-{% block page_subtitle %}Review itemized general payroll sheets, daily rates, tax breakdown, and status of department claims{% endblock %}
-
-{% block content %}
 <div style="display: flex; flex-direction: column; gap: 1.5rem;">
     <!-- Top Action bar -->
-    <div class="container-card" style="padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; background-color: var(--up-maroon-light);">
+    <div class="container-card no-print" style="padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; background-color: var(--up-maroon-light);">
         <div>
             <span style="font-size: 0.8rem; font-weight: 700; color: var(--up-maroon); text-transform: uppercase;">General Payroll Spreadsheet</span>
             <h2 style="font-size: 1.25rem; color: var(--text-primary);">Period: {{ payroll.period_start|date:"d-M-Y" }} to {{ payroll.period_end|date:"d-M-Y" }}</h2>
@@ -20,8 +33,36 @@
         </div>
     </div>
 
+    {% if request.user.profile.role == 'UNIT_AO' or request.user.profile.role == 'UNIT_HEAD' or request.user.is_superuser %}
+    <!-- Employee Management Panel -->
+    <div class="container-card no-print" style="padding: 1.25rem 1.5rem; border: 1px solid var(--border-color); background-color: #ffffff;">
+        <h3 style="font-size: 1rem; font-weight: 700; color: var(--up-maroon); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+            👤 Customize Payee Group / Employee List
+        </h3>
+        
+        <form method="POST" action="" style="display: flex; gap: 1rem; align-items: flex-end; max-width: 600px;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_employee">
+            
+            <div style="flex: 1;">
+                <label for="employee_id" style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.25rem;">Select Employee to Insert:</label>
+                <select name="employee_id" id="employee_id" class="form-control" style="width: 100%; padding: 6px;" required>
+                    <option value="">-- Select from Masterlist --</option>
+                    {% for emp in available_employees %}
+                        <option value="{{ emp.id }}">{{ emp.name }} (TIN: {{ emp.tin|default:"N/A" }})</option>
+                    {% empty %}
+                        <option value="" disabled>All department employees are already added.</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="height: 38px;">Insert Employee</button>
+        </form>
+    </div>
+    {% endif %}
+
     <!-- The Spreadsheet Print Layout -->
-    <div class="paper-document" style="font-family: Arial, sans-serif; font-size: 10px; padding: 2rem; border: 1px solid #000; box-shadow: var(--shadow-lg);">
+    <div class="paper-document" style="font-family: Arial, sans-serif; font-size: 10px; padding: 2rem; border: 1px solid #000; box-shadow: var(--shadow-lg); background-color: #fff;">
         <div style="text-align: center; margin-bottom: 1.5rem;">
             <h2 style="font-size: 15px; font-weight: bold; margin-bottom: 2px; font-family: Arial, sans-serif; letter-spacing: 0.5px;">UNIVERSITY OF THE PHILIPPINES</h2>
             <h3 style="font-size: 13px; font-weight: bold; margin-bottom: 2px; font-family: Arial, sans-serif;">UP System</h3>
@@ -72,6 +113,9 @@
                     <th style="border: 1px solid #000; padding: 6px 4px; text-align: right; width: 75px;">Total Ded.</th>
                     <th style="border: 1px solid #000; padding: 6px 4px; text-align: right; width: 85px;">Net Salary</th>
                     <th style="border: 1px solid #000; padding: 6px 4px; text-align: left; width: 80px;">Bank Account</th>
+                    {% if request.user.profile.role == 'UNIT_AO' or request.user.profile.role == 'UNIT_HEAD' or request.user.is_superuser %}
+                    <th class="no-print" style="border: 1px solid #000; padding: 6px 4px; text-align: center; width: 60px;">Action</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -90,6 +134,16 @@
                     <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right; font-weight: 600;">{{ item.total_deductions|intcomma }}</td>
                     <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right; font-weight: bold; font-size: 11px;">{{ item.net_salary|intcomma }}</td>
                     <td style="border: 1px solid #e2e8f0; padding: 5px 4px; font-family: monospace;">{{ item.employee.account_number|default:"--" }}</td>
+                    {% if request.user.profile.role == 'UNIT_AO' or request.user.profile.role == 'UNIT_HEAD' or request.user.is_superuser %}
+                    <td class="no-print" style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: center;">
+                        <form method="POST" action="" onsubmit="return confirm('Remove {{ item.employee.name }} from this payroll?');" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_employee">
+                            <input type="hidden" name="item_id" value="{{ item.id }}">
+                            <button type="submit" style="background: none; border: none; color: var(--up-maroon); cursor: pointer; font-size: 11px; font-weight: bold;">Delete</button>
+                        </form>
+                    </td>
+                    {% endif %}
                 </tr>
                 {% endfor %}
                 <tr style="font-weight: bold; border-top: 2px solid #000; border-bottom: 2px solid #000; background-color: #f8fafc;">
@@ -105,8 +159,10 @@
                     <td style="padding: 6px 4px; text-align: right;">{{ totals.deductions|intcomma }}</td>
                     <td style="padding: 6px 4px; text-align: right; font-size: 11px; color: var(--up-maroon);">PhP {{ totals.net|intcomma }}</td>
                     <td style="padding: 6px 4px; text-align: left;"></td>
+                    {% if request.user.profile.role == 'UNIT_AO' or request.user.profile.role == 'UNIT_HEAD' or request.user.is_superuser %}
+                    <td class="no-print"></td>
+                    {% endif %}
                 </tr>
-            </tbody>
         </table>
 
         <!-- Signature Footer matching screenshot -->
