@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load humanize %}
 
 {% block title %}Dashboard - PayUPS{% endblock %}
 {% block page_title %}System Dashboard{% endblock %}
@@ -88,7 +89,7 @@
                         <td><span class="badge badge-info">ObR / BUR</span></td>
                         <td><strong>{{ obr.obr_number }}</strong></td>
                         <td>{{ obr.requesting_unit }}</td>
-                        <td>PhP {{ obr.total_amount }}</td>
+                        <td>PhP {{ obr.total_amount|intcomma }}</td>
                         <td><span class="badge badge-pending">{{ obr.get_status_display }}</span></td>
                         <td><a href="{% url 'obr_view' obr.pk %}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem; background-color: var(--up-gold-light); color: var(--up-gold); border-color: var(--up-gold);">Review Request</a></td>
                     </tr>
@@ -100,7 +101,7 @@
                         <td><span class="badge badge-approved" style="background-color: var(--up-maroon-light); color: var(--up-maroon);">DV Voucher</span></td>
                         <td><strong>{{ dv.dv_number }}</strong></td>
                         <td>{{ dv.requesting_unit }}</td>
-                        <td>PhP {{ dv.total_amount }}</td>
+                        <td>PhP {{ dv.total_amount|intcomma }}</td>
                         <td><span class="badge badge-pending">{{ dv.get_status_display }}</span></td>
                         <td><a href="{% url 'dv_view' dv.pk %}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem; background-color: var(--up-maroon-light); color: var(--up-maroon); border-color: var(--up-maroon);">Review Voucher</a></td>
                     </tr>
@@ -166,4 +167,146 @@
 </div>
 {% endif %}
 
+<!-- Consolidated Transaction Masterlists -->
+<div class="container-card" style="margin-top: 2rem; box-shadow: var(--shadow-md);">
+    <div class="card-header" style="background-color: var(--bg-slate); display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); flex-wrap: wrap; gap: 1rem;">
+        <h3 class="card-title">System Transaction Masterlists</h3>
+        <!-- Tab Navigation Buttons -->
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button onclick="switchDashboardTab('tab-dv')" id="btn-tab-dv" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.8rem;">Disbursement Vouchers (DV)</button>
+            <button onclick="switchDashboardTab('tab-obr')" id="btn-tab-obr" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">Obligation Requests (ObR)</button>
+            <button onclick="switchDashboardTab('tab-payroll')" id="btn-tab-payroll" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">General Payroll Sheets</button>
+        </div>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        
+        <!-- DV Tab Content -->
+        <div id="tab-dv" class="dashboard-tab-content">
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>DV Number</th>
+                            <th>Requesting Unit</th>
+                            <th>Total Amount</th>
+                            <th>Status</th>
+                            <th>Date Created</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dv in dvs %}
+                        <tr>
+                            <td><strong>{{ dv.dv_number }}</strong></td>
+                            <td>{{ dv.requesting_unit }}</td>
+                            <td>PhP {{ dv.total_amount|intcomma }}</td>
+                            <td><span class="badge {% if dv.status == 'APPROVED' or dv.status == 'RADA_DRAFT' %}badge-approved{% elif dv.status == 'DRAFTED' %}badge-draft{% else %}badge-pending{% endif %}">{{ dv.get_status_display }}</span></td>
+                            <td>{{ dv.transaction_date }}</td>
+                            <td><a href="{% url 'dv_view' dv.pk %}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;">View Voucher</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-secondary);">No Disbursement Vouchers registered.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ObR Tab Content -->
+        <div id="tab-obr" class="dashboard-tab-content" style="display: none;">
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>ObR Number</th>
+                            <th>Requesting Unit</th>
+                            <th>Total Amount</th>
+                            <th>Status</th>
+                            <th>Date Created</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for obr in obrs %}
+                        <tr>
+                            <td><strong>{{ obr.obr_number }}</strong></td>
+                            <td>{{ obr.requesting_unit }}</td>
+                            <td>PhP {{ obr.total_amount|intcomma }}</td>
+                            <td><span class="badge {% if obr.status == 'APPROVED' %}badge-approved{% elif obr.status == 'DRAFTED' %}badge-draft{% else %}badge-pending{% endif %}">{{ obr.get_status_display }}</span></td>
+                            <td>{{ obr.transaction_date }}</td>
+                            <td><a href="{% url 'obr_view' obr.pk %}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;">View Request</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-secondary);">No Obligation Requests registered.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- General Payroll Tab Content -->
+        <div id="tab-payroll" class="dashboard-tab-content" style="display: none;">
+            <div class="table-responsive">
+                <table class="custom-table">
+                    <thead>
+                        <tr>
+                            <th>Payroll Name</th>
+                            <th>Department</th>
+                            <th>Validity Period</th>
+                            <th>Status</th>
+                            <th>Created Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for gp in general_payrolls %}
+                        <tr>
+                            <td><strong>{{ gp.payroll_name }}</strong></td>
+                            <td>{{ gp.get_department_display }}</td>
+                            <td>{{ gp.period_start }} to {{ gp.period_end }}</td>
+                            <td><span class="badge {% if gp.status == 'APPROVED' %}badge-approved{% elif gp.status == 'DRAFT' %}badge-draft{% else %}badge-pending{% endif %}">{{ gp.get_status_display }}</span></td>
+                            <td>{{ gp.created_at|date:"Y-m-d" }}</td>
+                            <td><a href="{% url 'general_payroll_detail' gp.pk %}" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;">View Details</a></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-secondary);">No General Payroll sheets registered.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    function switchDashboardTab(tabId) {
+        // Hide all tab contents
+        document.querySelectorAll('.dashboard-tab-content').forEach(function(el) {
+            el.style.display = 'none';
+        });
+        
+        // Show current tab content
+        document.getElementById(tabId).style.display = 'block';
+        
+        // Update tab buttons style
+        const tabs = ['tab-dv', 'tab-obr', 'tab-payroll'];
+        tabs.forEach(function(t) {
+            const btn = document.getElementById('btn-' + t);
+            if (btn) {
+                if (t === tabId) {
+                    btn.className = 'btn btn-primary';
+                } else {
+                    btn.className = 'btn btn-secondary';
+                }
+            }
+        });
+    }
+</script>
 {% endblock %}

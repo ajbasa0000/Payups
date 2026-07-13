@@ -71,6 +71,30 @@
                 </li>
             </ul>
             
+            {% if request.user.is_superuser %}
+            <div class="sidebar-section-title" style="padding: 0.5rem 1.5rem 0.25rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em; margin-top: 1rem;">Administration</div>
+            <ul class="sidebar-menu" style="flex: none; padding-top: 0; padding-bottom: 1rem;">
+                <li class="menu-item">
+                    <a href="/admin/" target="_blank">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Admin Panel
+                    </a>
+                </li>
+                <li class="menu-item {% if request.resolver_match.url_name == 'admin_command_center' %}active{% endif %}">
+                    <a href="{% url 'admin_command_center' %}">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.656 48.656 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3M3 12a48.291 48.291 0 001.662 9c.18.55.5 1.063.928 1.48a4.007 4.007 0 005.41 0c.429-.417.747-.93.928-1.48A48.27 48.27 0 0013.5 12m-10.5 0l-3 3m3-3l3 3m9.75-9.75a4.007 4.007 0 000 5.656m0-5.656a4.007 4.007 0 015.656 0m-5.656 5.656a4.007 4.007 0 005.656 0"></path>
+                        </svg>
+                        Command Center
+                    </a>
+                </li>
+            </ul>
+            {% endif %}
+
+            
             <!-- Sidebar User / Profile -->
             <div class="sidebar-user">
                 <div class="user-avatar">

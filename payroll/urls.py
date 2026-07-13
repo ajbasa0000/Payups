@@ -21,4 +21,6 @@ urlpatterns = [
     path('general-payroll/<int:pk>/', views.general_payroll_detail, name='general_payroll_detail'),
     path('memos/', views.memos_viewer, name='memos_viewer'),
     path('contracts/<int:employee_id>/generate/', views.generate_contract_docx, name='generate_contract_docx'),
+    path('admin-command-center/', views.admin_command_center, name='admin_command_center'),
 ]
+

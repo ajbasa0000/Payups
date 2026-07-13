@@ -163,7 +163,7 @@ class DVStatus(models.TextChoices):
     DRAFTED = 'DRAFTED', 'Drafted'
     WAITING_OBR = 'WAITING_OBR', 'Waiting for the Approval of ObR/BUR'
     UNIT_HEAD_APPROVED = 'UNIT_HEAD_APPROVED', 'Approved by Unit Head (Unit Head)'
-    SAO_RECEIVED = 'SAO_RECEIVED', 'Hardcopies Received by SAO'
+    SAO_RECEIVED = 'SAO_RECEIVED', 'Received by SAO'
     SAO_PRE_AUDIT = 'SAO_PRE_AUDIT', 'Checked by SAO Pre-Audit Staff'
     SAO_SUPERVISOR = 'SAO_SUPERVISOR', 'Checked by SAO Supervisor'
     CASH_MONITORED = 'CASH_MONITORED', 'Released Cash Monitoring'

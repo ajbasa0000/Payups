@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static humanize %}
 
 {% block title %}DV Voucher - {{ dv.dv_number }} - PayUPS{% endblock %}
 {% block page_title %}Disbursement Voucher Viewer{% endblock %}
@@ -61,36 +61,54 @@
                     {% if all_payees_verified %}All Verified{% else %}Awaiting Verification{% endif %}
                 </span>
             </div>
-            <div class="card-body" style="padding: 0;">
-                <table class="custom-table" style="font-size: 0.85rem;">
+            <div class="card-body" style="padding: 0; overflow-x: auto;">
+                <table class="custom-table" style="font-size: 0.8rem;">
                     <thead>
                         <tr>
                             <th>Payee Name</th>
                             <th>Gross Pay</th>
+                            <th>Deductions</th>
+                            <th>Net Pay</th>
                             <th>Contract Status</th>
                             <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for detail in payee_details %}
-                        <tr {% if active_payee and active_payee.pk == detail.pk %}style="background-color: #fefcf0;"{% endif %}>
+                        {% for item in payee_details_with_payroll %}
+                        <tr {% if active_payee and active_payee.pk == item.detail.pk %}style="background-color: #fefcf0; outline: 1.5px solid var(--up-gold);"{% endif %}>
                             <td>
-                                <strong>{{ detail.employee.name }}</strong>
-                                <div style="font-size: 0.75rem; color: var(--text-secondary);">TIN: {{ detail.employee.tin }}</div>
+                                <strong>{{ item.detail.employee.name }}</strong>
+                                <div style="font-size: 0.7rem; color: var(--text-secondary);">TIN: {{ item.detail.employee.tin }}</div>
                             </td>
-                            <td>PhP {{ detail.gross_amount }}</td>
+                            <td>PhP {{ item.detail.gross_amount|intcomma }}</td>
                             <td>
-                                {% if detail.is_contract_verified %}
-                                <span class="badge badge-approved" style="font-size: 0.7rem;">✓ Verified & Tagged</span>
+                                {% if item.payroll_item %}
+                                <strong>PhP {{ item.payroll_item.total_deductions|intcomma }}</strong>
+                                <div style="font-size: 0.65rem; color: var(--text-muted); line-height: 1.1; margin-top: 2px;">
+                                    SSS: {{ item.payroll_item.sss|intcomma }}<br>
+                                    PH: {{ item.payroll_item.philhealth_deductions|intcomma }}<br>
+                                    NVAT: {{ item.payroll_item.nvat_3|intcomma }}<br>
+                                    EWT: {{ item.payroll_item.ewt_5|add:item.payroll_item.ewt_10|intcomma }}
+                                </div>
                                 {% else %}
-                                <span class="badge badge-pending" style="font-size: 0.7rem;">⟳ Unverified</span>
+                                PhP {{ item.detail.withholding_tax|intcomma }} (Tax)
                                 {% endif %}
                             </td>
                             <td>
-                                {% if not detail.is_contract_verified %}
-                                <a href="?active_payee={{ detail.pk }}" class="btn btn-primary" style="padding: 4px 8px; font-size: 0.75rem; background-color: var(--up-maroon);">Verify Contract</a>
+                                <strong>PhP {{ item.payroll_item.net_salary|default:item.detail.net_amount|intcomma }}</strong>
+                            </td>
+                            <td>
+                                {% if item.detail.is_contract_verified %}
+                                <span class="badge badge-approved" style="font-size: 0.65rem; padding: 2px 6px;">✓ Verified</span>
                                 {% else %}
-                                <a href="?active_payee={{ detail.pk }}" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;">View Linked</a>
+                                <span class="badge badge-pending" style="font-size: 0.65rem; padding: 2px 6px;">⟳ Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not item.detail.is_contract_verified %}
+                                <a href="?active_payee={{ item.detail.pk }}" class="btn btn-primary" style="padding: 4px 6px; font-size: 0.7rem; background-color: var(--up-maroon); white-space: nowrap;">Verify Contract</a>
+                                {% else %}
+                                <a href="?active_payee={{ item.detail.pk }}" class="btn btn-secondary" style="padding: 4px 6px; font-size: 0.7rem; white-space: nowrap;">View Linked</a>
                                 {% endif %}
                             </td>
                         </tr>
@@ -102,8 +120,25 @@
 
         <!-- Right Panel: Active Contract Details panel -->
         <div class="container-card" style="border-top: 4px solid var(--up-forest);">
-            <div class="card-header" style="background-color: var(--up-forest-light);">
+            <div class="card-header" style="background-color: var(--up-forest-light); display: flex; align-items: center; justify-content: space-between;">
                 <h3 class="card-title" style="color: var(--up-forest);">2. Active Contract Attachment Verification</h3>
+                
+                <!-- Pagination / Quick cycle through employees -->
+                {% if active_payee %}
+                <div style="display: flex; gap: 4px;">
+                    {% if prev_payee_id %}
+                    <a href="?active_payee={{ prev_payee_id }}" class="btn btn-secondary" style="padding: 2px 8px; font-size: 0.75rem; font-weight: bold; border-color: var(--up-forest); color: var(--up-forest);">← Prev</a>
+                    {% else %}
+                    <button class="btn btn-secondary" style="padding: 2px 8px; font-size: 0.75rem; font-weight: bold; opacity: 0.5; cursor: not-allowed;" disabled>← Prev</button>
+                    {% endif %}
+                    
+                    {% if next_payee_id %}
+                    <a href="?active_payee={{ next_payee_id }}" class="btn btn-secondary" style="padding: 2px 8px; font-size: 0.75rem; font-weight: bold; border-color: var(--up-forest); color: var(--up-forest);">Next →</a>
+                    {% else %}
+                    <button class="btn btn-secondary" style="padding: 2px 8px; font-size: 0.75rem; font-weight: bold; opacity: 0.5; cursor: not-allowed;" disabled>Next →</button>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
             <div class="card-body">
                 {% if active_payee %}
@@ -125,11 +160,11 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                             <div>
                                 <span style="font-size: 0.75rem; color: var(--text-secondary); display: block;">Approved Monthly Rate:</span>
-                                <strong style="font-size: 1rem;">PhP {{ active_payee.contract.monthly_rate }}</strong>
+                                <strong style="font-size: 1rem;">PhP {{ active_payee.contract.monthly_rate|intcomma }}</strong>
                             </div>
                             <div>
                                 <span style="font-size: 0.75rem; color: var(--text-secondary); display: block;">Approved Daily Rate:</span>
-                                <strong style="font-size: 1rem;">PhP {{ active_payee.contract.daily_rate }}</strong>
+                                <strong style="font-size: 1rem;">PhP {{ active_payee.contract.daily_rate|intcomma }}</strong>
                                 {% if active_payee.contract.rate_type == 'DAILY' %}
                                 <span style="display: block; font-size: 0.7rem; color: var(--text-muted);">(Calculated as Monthly / 22 days)</span>
                                 {% endif %}
@@ -139,8 +174,8 @@
 
                     <div style="background-color: #fefcf0; border: 1px dashed var(--up-gold); padding: 1rem; border-radius: var(--radius-md); font-size: 0.85rem;">
                         <strong style="color: var(--up-gold); display: block; margin-bottom: 0.25rem;">Compare Claim vs Contract:</strong>
-                        • Payroll Claimed Gross: <strong>PhP {{ active_payee.gross_amount }}</strong><br>
-                        • Approved Contract Rate: <strong>PhP {{ active_payee.contract.monthly_rate }}</strong> (for Monthly rate) or <strong>PhP {{ active_payee.contract.daily_rate }}</strong> (for Daily rate)<br>
+                        • Payroll Claimed Gross: <strong>PhP {{ active_payee.gross_amount|intcomma }}</strong><br>
+                        • Approved Contract Rate: <strong>PhP {{ active_payee.contract.monthly_rate|intcomma }}</strong> (for Monthly rate) or <strong>PhP {{ active_payee.contract.daily_rate|intcomma }}</strong> (for Daily rate)<br>
                         <span style="color: var(--up-forest); font-weight: 600; display: block; margin-top: 0.5rem;">✓ Values match perfectly! No discrepancies detected.</span>
                     </div>
 
@@ -244,12 +279,12 @@
                     <td>{{ payee.particulars }}</td>
                     <td>{{ payee.account_to_debit|slice:":18" }}</td>
                     <td>{{ payee.ppa|slice:":14" }}</td>
-                    <td style="text-align: right;">{{ payee.gross_amount }}</td>
+                    <td style="text-align: right;">{{ payee.gross_amount|intcomma }}</td>
                 </tr>
                 {% endfor %}
                 <tr style="font-weight: bold; border-top: 2px solid #000;">
                     <td colspan="3" style="text-align: right;">Amount Due (PhP)</td>
-                    <td style="text-align: right;">PhP {{ dv.total_amount }}</td>
+                    <td style="text-align: right;">PhP {{ dv.total_amount|intcomma }}</td>
                 </tr>
             </tbody>
         </table>
@@ -336,9 +371,9 @@
                         <span style="color: var(--up-forest); font-size: 8px; font-weight: bold;">(Contract Attached)</span>
                         {% endif %}
                     </td>
-                    <td style="text-align: right;">{{ payee.gross_amount }}</td>
-                    <td style="text-align: right;">{{ payee.withholding_tax }}</td>
-                    <td style="text-align: right; font-weight: bold;">{{ payee.net_amount }}</td>
+                    <td style="text-align: right;">{{ payee.gross_amount|intcomma }}</td>
+                    <td style="text-align: right;">{{ payee.withholding_tax|intcomma }}</td>
+                    <td style="text-align: right; font-weight: bold;">{{ payee.net_amount|intcomma }}</td>
                 </tr>
                 {% endfor %}
                 <tr style="font-weight: bold; background-color: #f1f5f9;">

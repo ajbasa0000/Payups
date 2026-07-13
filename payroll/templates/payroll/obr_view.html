@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static humanize %}
 
 {% block title %}ObR/BUR - {{ obr.obr_number }} - PayUPS{% endblock %}
 {% block page_title %}Obligation Request Viewer{% endblock %}
@@ -107,7 +107,7 @@
                     <td>{{ payee.particulars }}</td>
                     <td>{{ payee.ppa|slice:":14" }}</td>
                     <td>50212990 99</td>
-                    <td style="text-align: right;">{{ payee.gross_amount }}</td>
+                    <td style="text-align: right;">{{ payee.gross_amount|intcomma }}</td>
                 </tr>
                 {% empty %}
                 <tr>
@@ -116,7 +116,7 @@
                 {% endfor %}
                 <tr style="font-weight: bold; border-top: 2px solid #000;">
                     <td colspan="4" style="text-align: right;">TOTAL</td>
-                    <td style="text-align: right;">PhP {{ obr.total_amount }}</td>
+                    <td style="text-align: right;">PhP {{ obr.total_amount|intcomma }}</td>
                 </tr>
             </tbody>
         </table>

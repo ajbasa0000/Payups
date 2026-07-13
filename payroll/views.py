@@ -81,9 +81,7 @@ def dashboard(request):
             dept_volumes[dept_label] = float(vol)
     top_departments = dict(sorted(dept_volumes.items(), key=lambda x: x[1], reverse=True)[:5])
 
-    general_payrolls = None
-    if role == Role.UNIT_AO or request.user.is_superuser:
-        general_payrolls = GeneralPayroll.objects.filter(department=user_profile.department)
+    general_payrolls = GeneralPayroll.objects.all().order_by('-created_at')
 
     context = {
         'obrs': obrs,
@@ -409,21 +407,57 @@ def dv_view(request, pk):
         except User.DoesNotExist:
             pass
 
-    # Contract for split screen: load the first unverified payee's contract as active
+    # Contract for split screen: load active payee based on request or default
     active_payee = None
+    prev_payee_id = None
+    next_payee_id = None
+    
     if request.user.profile.role == Role.SAO_PREAUDIT:
-        active_payee = payee_details.filter(is_contract_verified=False).first()
+        active_payee_id = request.GET.get('active_payee')
+        if active_payee_id:
+            try:
+                active_payee = payee_details.get(pk=int(active_payee_id))
+            except (ValueError, DVPayeeDetail.DoesNotExist):
+                pass
+        
         if not active_payee:
-            # If all verified, load the first payee for viewing
+            active_payee = payee_details.filter(is_contract_verified=False).first()
+        if not active_payee:
             active_payee = payee_details.first()
+            
+        # Calculate pagination
+        if active_payee:
+            payee_list = list(payee_details)
+            try:
+                curr_idx = payee_list.index(active_payee)
+                if curr_idx > 0:
+                    prev_payee_id = payee_list[curr_idx - 1].pk
+                if curr_idx < len(payee_list) - 1:
+                    next_payee_id = payee_list[curr_idx + 1].pk
+            except ValueError:
+                pass
+
+    # Attach payroll details
+    payee_details_with_payroll = []
+    for detail in payee_details:
+        payroll_item = None
+        if dv.general_payroll:
+            payroll_item = dv.general_payroll.items.filter(employee=detail.employee).first()
+        payee_details_with_payroll.append({
+            'detail': detail,
+            'payroll_item': payroll_item
+        })
 
     context = {
         'dv': dv,
         'logs': logs,
         'payee_details': payee_details,
+        'payee_details_with_payroll': payee_details_with_payroll,
         'signatures': signatures,
         'all_payees_verified': all_payees_verified,
         'active_payee': active_payee,
+        'prev_payee_id': prev_payee_id,
+        'next_payee_id': next_payee_id,
         'DVStatus': DVStatus,
         'Role': Role,
     }
@@ -566,7 +600,7 @@ def approve_dv(request, pk):
                 
         elif current_status == DVStatus.UNIT_HEAD_APPROVED and role == Role.SAO_RECEIVING:
             next_status = DVStatus.SAO_RECEIVED
-            remarks = remarks or "Hardcopies and attachments received by SAO"
+            remarks = remarks or "Voucher and digital attachments received by SAO"
         elif current_status == DVStatus.SAO_RECEIVED and role == Role.SAO_PREAUDIT:
             # Check if pre-audit verification of contracts is complete
             unverified_count = dv.payee_details.filter(is_contract_verified=False).count()
@@ -1238,5 +1272,241 @@ def generate_contract_docx(request, employee_id):
         content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     )
     return response
+
+
+@login_required
+def admin_command_center(request):
+    if not request.user.is_superuser:
+        return HttpResponseForbidden("You do not have permission to access the Command Center.")
+
+    import csv
+    import platform
+    import sys
+    from django.http import HttpResponse
+    from django.db import connection
+
+    # Handle POST Actions
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'update_user_role':
+            user_id = request.POST.get('user_id')
+            new_role = request.POST.get('role')
+            new_dept = request.POST.get('department')
+            target_user = get_object_or_404(User, id=user_id)
+            profile = target_user.profile
+            if new_role:
+                profile.role = new_role
+            if new_dept:
+                profile.department = new_dept
+            profile.save()
+            messages.success(request, f"Successfully updated profile for user {target_user.username}.")
+            return redirect('admin_command_center')
+            
+        elif action == 'override_status':
+            tx_type = request.POST.get('tx_type')
+            tx_id = request.POST.get('tx_id')
+            new_status = request.POST.get('new_status')
+            remarks = request.POST.get('remarks', 'Status overridden via Command Center.')
+            
+            if tx_type == 'OBR':
+                obr = get_object_or_404(ObligationRequest, id=tx_id)
+                old_status = obr.status
+                obr.status = new_status
+                obr.save()
+                
+                WorkflowLog.objects.create(
+                    obr=obr,
+                    status_from=old_status,
+                    status_to=new_status,
+                    changed_by=request.user,
+                    remarks=remarks
+                )
+                messages.success(request, f"Obligation Request {obr.obr_number} status overridden to {new_status}.")
+            elif tx_type == 'DV':
+                dv = get_object_or_404(DisbursementVoucher, id=tx_id)
+                old_status = dv.status
+                dv.status = new_status
+                dv.save()
+                
+                WorkflowLog.objects.create(
+                    dv=dv,
+                    status_from=old_status,
+                    status_to=new_status,
+                    changed_by=request.user,
+                    remarks=remarks
+                )
+                messages.success(request, f"Disbursement Voucher {dv.dv_number} status overridden to {new_status}.")
+            return redirect('admin_command_center')
+            
+        elif action == 'export_report':
+            report_type = request.POST.get('report_type')
+            response = HttpResponse(content_type='text/csv')
+            
+            if report_type == 'OBR':
+                response['Content-Disposition'] = 'attachment; filename="obr_summary_report.csv"'
+                writer = csv.writer(response)
+                writer.writerow(['ID', 'ObR Number', 'Date', 'Requesting Unit', 'Expense Class', 'Total Amount', 'Status'])
+                for obr in ObligationRequest.objects.all().order_by('-transaction_date'):
+                    writer.writerow([obr.id, obr.obr_number, obr.transaction_date, obr.requesting_unit, obr.expense_class, obr.total_amount, obr.get_status_display()])
+            else:
+                response['Content-Disposition'] = 'attachment; filename="dv_summary_report.csv"'
+                writer = csv.writer(response)
+                writer.writerow(['ID', 'DV Number', 'Date', 'Requesting Unit', 'Mode of Payment', 'Total Amount', 'Status'])
+                for dv in DisbursementVoucher.objects.all().order_by('-transaction_date'):
+                    writer.writerow([dv.id, dv.dv_number, dv.transaction_date, dv.requesting_unit, dv.mode_of_payment, dv.total_amount, dv.get_status_display()])
+            return response
+
+    # GET requests - Collect status and metrics
+    # System Stability
+    sys_info = {
+        'os': platform.system() + ' ' + platform.release(),
+        'python_version': sys.version.split(' ')[0],
+        'django_version': '6.0.6',
+        'db_backend': connection.vendor,
+    }
+    
+    # DB Size and connection check
+    db_size = "Unknown"
+    db_healthy = False
+    try:
+        if connection.vendor == 'postgresql':
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT pg_size_pretty(pg_database_size(current_database()));")
+                db_size = cursor.fetchone()[0]
+                db_healthy = True
+        elif connection.vendor == 'sqlite':
+            db_path = settings.DATABASES['default']['NAME']
+            if os.path.exists(db_path):
+                size_bytes = os.path.getsize(db_path)
+                db_size = f"{size_bytes / (1024*1024):.2f} MB"
+                db_healthy = True
+    except Exception as e:
+        db_size = f"Error reading DB: {str(e)}"
+        
+    # Backend Storage Status
+    media_path = settings.MEDIA_ROOT
+    media_size = "0 MB"
+    media_count = 0
+    try:
+        if os.path.exists(media_path):
+            total_size = 0
+            for dirpath, dirnames, filenames in os.walk(media_path):
+                for f in filenames:
+                    fp = os.path.join(dirpath, f)
+                    if not os.path.islink(fp):
+                        total_size += os.path.getsize(fp)
+                        media_count += 1
+            media_size = f"{total_size / (1024*1024):.2f} MB"
+    except Exception:
+        pass
+
+    supabase_configured = bool(settings.SUPABASE_URL and settings.SUPABASE_KEY)
+    
+    storage_info = {
+        'supabase_configured': supabase_configured,
+        'supabase_url': settings.SUPABASE_URL if supabase_configured else "Not Set",
+        'media_count': media_count,
+        'media_size': media_size,
+    }
+
+    # Workflow / Approval Flow Statistics
+    obr_status_stats = {}
+    for code, label in ObRStatus.choices:
+        obr_status_stats[label] = {
+            'code': code,
+            'count': ObligationRequest.objects.filter(status=code).count()
+        }
+        
+    dv_status_stats = {}
+    for code, label in DVStatus.choices:
+        dv_status_stats[label] = {
+            'code': code,
+            'count': DisbursementVoucher.objects.filter(status=code).count()
+        }
+        
+    recent_logs = WorkflowLog.objects.all().order_by('-changed_at')[:15]
+
+    # User Management
+    all_users = User.objects.all().select_related('profile').order_by('username')
+
+    # General Transaction History Search and Filter
+    search_query = request.GET.get('q', '')
+    filter_type = request.GET.get('type', '')
+    filter_status = request.GET.get('status', '')
+
+    tx_list = []
+    
+    # Query Obligation Requests
+    obrs = ObligationRequest.objects.all()
+    if search_query:
+        obrs = obrs.filter(Q(obr_number__icontains=search_query) | Q(requesting_unit__icontains=search_query))
+    if filter_status:
+        obrs = obrs.filter(status=filter_status)
+    if filter_type == '' or filter_type == 'OBR':
+        for o in obrs:
+            tx_list.append({
+                'type': 'OBR',
+                'id': o.id,
+                'number': o.obr_number,
+                'date': o.transaction_date,
+                'requesting_unit': o.requesting_unit,
+                'amount': o.total_amount,
+                'status': o.status,
+                'status_display': o.get_status_display(),
+                'url': f"/obr/{o.id}/",
+                'status_choices': ObRStatus.choices
+            })
+
+    # Query Disbursement Vouchers
+    dvs = DisbursementVoucher.objects.all()
+    if search_query:
+        dvs = dvs.filter(Q(dv_number__icontains=search_query) | Q(requesting_unit__icontains=search_query))
+    if filter_status:
+        dvs = dvs.filter(status=filter_status)
+    if filter_type == '' or filter_type == 'DV':
+        for d in dvs:
+            tx_list.append({
+                'type': 'DV',
+                'id': d.id,
+                'number': d.dv_number,
+                'date': d.transaction_date,
+                'requesting_unit': d.requesting_unit,
+                'amount': d.total_amount,
+                'status': d.status,
+                'status_display': d.get_status_display(),
+                'url': f"/dv/{d.id}/",
+                'status_choices': DVStatus.choices
+            })
+
+    # Sort combined transaction history by date desc
+    tx_list.sort(key=lambda x: x['date'], reverse=True)
+
+    # Paginate results
+    paginator = Paginator(tx_list, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'sys_info': sys_info,
+        'db_healthy': db_healthy,
+        'db_size': db_size,
+        'storage_info': storage_info,
+        'obr_status_stats': obr_status_stats,
+        'dv_status_stats': dv_status_stats,
+        'recent_logs': recent_logs,
+        'all_users': all_users,
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'filter_type': filter_type,
+        'filter_status': filter_status,
+        'role_choices': Role.choices,
+        'dept_choices': Department.choices,
+        'obr_statuses': ObRStatus.choices,
+        'dv_statuses': DVStatus.choices,
+    }
+
+    return render(request, 'payroll/admin_command_center.html', context)
+
 
 

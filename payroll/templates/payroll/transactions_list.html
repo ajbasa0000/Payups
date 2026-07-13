@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load humanize %}
 
 {% block title %}Transactions Log - PayUPS{% endblock %}
 {% block page_title %}DV & ObR Transactions Processing{% endblock %}
@@ -93,7 +94,7 @@
                         </td>
                         <td><strong>{{ item.ref_number }}</strong></td>
                         <td>{{ item.requesting_unit }}</td>
-                        <td>PhP {{ item.amount }}</td>
+                        <td>PhP {{ item.amount|intcomma }}</td>
                         <td>
                             {% if item.status_code == 'RADA_DRAFT' or item.status_code == 'APPROVED' %}
                                 <span class="badge badge-approved">{{ item.status }}</span>

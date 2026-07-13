@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static humanize %}
 
 {% block title %}General Payroll Sheet - PayUPS{% endblock %}
 {% block page_title %}General Payroll Viewer{% endblock %}
@@ -79,16 +79,16 @@
                 <tr style="border-bottom: 1px solid #e2e8f0;">
                     <td style="border: 1px solid #e2e8f0; padding: 5px 4px;">{{ item.employee.tin|default:"--" }}</td>
                     <td style="border: 1px solid #e2e8f0; padding: 5px 4px; font-weight: bold;">{{ item.employee.name }}</td>
-                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{{ item.salary_basis }}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{{ item.salary_basis|intcomma }}</td>
                     <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{{ item.no_of_days }}</td>
-                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right; font-weight: 600;">{{ item.gross_salary }}</td>
-                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{{ item.philhealth_deductions }}</td>
-                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{% if item.sss > 0 %}{{ item.sss }}{% else %}-{% endif %}</td>
-                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{% if item.nvat_3 > 0 %}{{ item.nvat_3 }}{% else %}-{% endif %}</td>
-                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{% if item.ewt_5 > 0 %}{{ item.ewt_5 }}{% else %}-{% endif %}</td>
-                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{% if item.ewt_10 > 0 %}{{ item.ewt_10 }}{% else %}-{% endif %}</td>
-                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right; font-weight: 600;">{{ item.total_deductions }}</td>
-                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right; font-weight: bold; font-size: 11px;">{{ item.net_salary }}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right; font-weight: 600;">{{ item.gross_salary|intcomma }}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{{ item.philhealth_deductions|intcomma }}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{% if item.sss > 0 %}{{ item.sss|intcomma }}{% else %}-{% endif %}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{% if item.nvat_3 > 0 %}{{ item.nvat_3|intcomma }}{% else %}-{% endif %}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{% if item.ewt_5 > 0 %}{{ item.ewt_5|intcomma }}{% else %}-{% endif %}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right;">{% if item.ewt_10 > 0 %}{{ item.ewt_10|intcomma }}{% else %}-{% endif %}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right; font-weight: 600;">{{ item.total_deductions|intcomma }}</td>
+                    <td style="border: 1px solid #e2e8f0; padding: 5px 4px; text-align: right; font-weight: bold; font-size: 11px;">{{ item.net_salary|intcomma }}</td>
                     <td style="border: 1px solid #e2e8f0; padding: 5px 4px; font-family: monospace;">{{ item.employee.account_number|default:"--" }}</td>
                 </tr>
                 {% endfor %}
@@ -96,14 +96,14 @@
                     <td colspan="2" style="padding: 6px 4px; text-align: left;">Total</td>
                     <td style="padding: 6px 4px; text-align: right;">-</td>
                     <td style="padding: 6px 4px; text-align: right;">-</td>
-                    <td style="padding: 6px 4px; text-align: right;">{{ totals.gross }}</td>
-                    <td style="padding: 6px 4px; text-align: right;">{{ totals.philhealth }}</td>
-                    <td style="padding: 6px 4px; text-align: right;">{{ totals.sss }}</td>
-                    <td style="padding: 6px 4px; text-align: right;">{{ totals.nvat }}</td>
-                    <td style="padding: 6px 4px; text-align: right;">{{ totals.ewt_5 }}</td>
-                    <td style="padding: 6px 4px; text-align: right;">{{ totals.ewt_10 }}</td>
-                    <td style="padding: 6px 4px; text-align: right;">{{ totals.deductions }}</td>
-                    <td style="padding: 6px 4px; text-align: right; font-size: 11px; color: var(--up-maroon);">PhP {{ totals.net }}</td>
+                    <td style="padding: 6px 4px; text-align: right;">{{ totals.gross|intcomma }}</td>
+                    <td style="padding: 6px 4px; text-align: right;">{{ totals.philhealth|intcomma }}</td>
+                    <td style="padding: 6px 4px; text-align: right;">{{ totals.sss|intcomma }}</td>
+                    <td style="padding: 6px 4px; text-align: right;">{{ totals.nvat|intcomma }}</td>
+                    <td style="padding: 6px 4px; text-align: right;">{{ totals.ewt_5|intcomma }}</td>
+                    <td style="padding: 6px 4px; text-align: right;">{{ totals.ewt_10|intcomma }}</td>
+                    <td style="padding: 6px 4px; text-align: right;">{{ totals.deductions|intcomma }}</td>
+                    <td style="padding: 6px 4px; text-align: right; font-size: 11px; color: var(--up-maroon);">PhP {{ totals.net|intcomma }}</td>
                     <td style="padding: 6px 4px; text-align: left;"></td>
                 </tr>
             </tbody>
