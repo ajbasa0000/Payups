@@ -830,9 +830,8 @@ def general_payroll_create(request):
 
         # Loop through employees and grab inputs
         included_ids = request.POST.getlist('included_employees')
-        for emp in employees:
-            if str(emp.pk) not in included_ids:
-                continue
+        for emp_id_str in included_ids:
+            emp = get_object_or_404(Employee, id=int(emp_id_str))
             salary_basis = request.POST.get(f'salary_basis_{emp.pk}', 0.00)
             no_of_days = request.POST.get(f'no_of_days_{emp.pk}', 11.00)
             gross_salary = request.POST.get(f'gross_salary_{emp.pk}', 0.00)
@@ -862,9 +861,29 @@ def general_payroll_create(request):
         messages.success(request, f"General Payroll for {payroll.get_department_display()} successfully generated!")
         return redirect('general_payroll_detail', pk=payroll.pk)
 
+    import json
+    all_employees = Employee.objects.all().order_by('name')
+    all_contracts_data = []
+    for emp in all_employees:
+        contract = Contract.objects.filter(employee=emp, is_active=True).first()
+        salary_basis = float(contract.monthly_rate if contract.rate_type == ContractType.MONTHLY else contract.daily_rate * 22) if contract else 0.00
+        all_contracts_data.append({
+            'id': emp.id,
+            'name': emp.name,
+            'tin': emp.tin,
+            'bank_name': emp.bank_name,
+            'account_number': emp.account_number,
+            'salary_basis': salary_basis,
+            'designation': contract.designation if contract else "COS Staff",
+            'department': emp.get_department_display()
+        })
+    all_contracts_json = json.dumps(all_contracts_data)
+
     context = {
         'department_display': profile.get_department_display(),
         'emp_contracts': emp_contracts,
+        'all_employees': all_employees,
+        'all_contracts_json': all_contracts_json,
     }
     return render(request, 'payroll/general_payroll_create.html', context)
 

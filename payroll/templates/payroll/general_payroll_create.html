@@ -43,6 +43,25 @@
                 <h4 style="margin-bottom: 0; font-weight: 700; color: var(--text-primary);">Employee Payroll Matrix</h4>
             </div>
 
+            <!-- Add Employee from Masterlist Panel -->
+            <div class="container-card no-print" style="margin-bottom: 1.5rem; background-color: var(--bg-slate); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: none;">
+                <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--up-maroon); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                    👤 Insert Employee from Masterlist (Cross-Office/External)
+                </h4>
+                <p style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Allows inserting any active contract employee in the system into this department's payroll registry.</p>
+                <div style="display: flex; gap: 1rem; align-items: flex-end; max-width: 600px;">
+                    <div style="flex: 1;">
+                        <select id="masterlist-employee-select" class="form-control" style="width: 100%; padding: 6px; font-size: 0.8rem;">
+                            <option value="">-- Select Employee (All Departments) --</option>
+                            {% for emp in all_employees %}
+                                <option value="{{ emp.id }}">{{ emp.name }} [{{ emp.get_department_display|slice:":35" }}...]</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="insertFromMasterlist()" style="height: 34px; padding: 0 1rem; font-size: 0.8rem;">Insert Employee</button>
+                </div>
+            </div>
+
             <!-- Add Employee Back Panel -->
             <div id="add-employee-panel" style="display: none; margin-bottom: 1.5rem; background-color: var(--up-maroon-light); padding: 1rem; border-radius: var(--radius-md); border: 1px dashed var(--up-maroon);">
                 <div style="display: flex; gap: 1rem; align-items: flex-end;">
@@ -263,6 +282,99 @@
                 document.getElementById('add-employee-panel').style.display = 'none';
             }
         }
+    }
+
+    const allContracts = {{ all_contracts_json|safe }};
+
+    function insertFromMasterlist() {
+        const select = document.getElementById('masterlist-employee-select');
+        const id = parseInt(select.value);
+        if (!id) return;
+        
+        // 1. Check if row already exists in the DOM
+        let row = document.querySelector(`.payroll-row[data-emp-id="${id}"]`);
+        if (row) {
+            row.style.display = '';
+            const checkbox = row.querySelector('.include-checkbox');
+            if (checkbox) checkbox.checked = true;
+            calculateRow(id);
+            // remove from select dropdown of excluded if it's there
+            const opt = document.getElementById(`opt-excluded-${id}`);
+            if (opt) opt.remove();
+            
+            // Hide panel if no more excluded
+            const excludedSelect = document.getElementById('add-employee-select');
+            if (excludedSelect.options.length <= 1) {
+                document.getElementById('add-employee-panel').style.display = 'none';
+            }
+            return;
+        }
+        
+        // 2. Otherwise find details from the serialized JSON
+        const empData = allContracts.find(c => c.id === id);
+        if (!empData) {
+            alert("Error: Employee data not found.");
+            return;
+        }
+        
+        // 3. Construct the HTML row dynamically
+        const tbody = document.querySelector('table.custom-table tbody');
+        const tr = document.createElement('tr');
+        tr.className = 'payroll-row';
+        tr.setAttribute('data-emp-id', id);
+        
+        tr.innerHTML = `
+            <td>
+                <input type="checkbox" name="included_employees" value="${id}" checked class="include-checkbox" style="display: none;">
+                <strong>${empData.name}</strong>
+                <div style="font-size: 0.7rem; color: var(--text-secondary);">TIN: ${empData.tin || ''} <span style="color:var(--up-gold); font-weight:700;">(${empData.department})</span></div>
+            </td>
+            <td>
+                <input type="number" step="0.01" class="form-control cell-input salary-basis" name="salary_basis_${id}" value="${empData.salary_basis.toFixed(2)}" readonly style="background-color: #f1f5f9; padding: 4px;">
+            </td>
+            <td>
+                <input type="number" step="0.01" class="form-control cell-input no-days" name="no_of_days_${id}" value="11.00" oninput="calculateRow(${id})" style="padding: 4px;">
+            </td>
+            <td>
+                <input type="number" step="0.01" class="form-control cell-input gross-salary" name="gross_salary_${id}" value="0.00" readonly style="background-color: #f1f5f9; padding: 4px; font-weight: bold;">
+            </td>
+            <td>
+                <input type="number" step="0.01" class="form-control cell-input philhealth" name="philhealth_${id}" value="0.00" oninput="updateDeductions(${id})" style="padding: 4px;">
+            </td>
+            <td>
+                <input type="number" step="0.01" class="form-control cell-input sss" name="sss_${id}" value="0.00" oninput="updateDeductions(${id})" style="padding: 4px;">
+            </td>
+            <td>
+                <input type="number" step="0.01" class="form-control cell-input nvat" name="nvat_${id}" value="0.00" oninput="updateDeductions(${id})" style="padding: 4px;">
+            </td>
+            <td>
+                <input type="number" step="0.01" class="form-control cell-input ewt-5" name="ewt_5_${id}" value="0.00" oninput="updateDeductions(${id})" style="padding: 4px;">
+            </td>
+            <td>
+                <input type="number" step="0.01" class="form-control cell-input ewt-10" name="ewt_10_${id}" value="0.00" oninput="updateDeductions(${id})" style="padding: 4px;">
+            </td>
+            <td>
+                <input type="number" step="0.01" class="form-control cell-input total-deductions" name="total_deductions_${id}" value="0.00" readonly style="background-color: #f1f5f9; padding: 4px; font-weight: bold;">
+            </td>
+            <td>
+                <input type="number" step="0.01" class="form-control cell-input net-salary" name="net_salary_${id}" value="0.00" readonly style="background-color: #fcf8e3; padding: 4px; font-weight: bold; color: var(--up-maroon);">
+            </td>
+            <td>
+                <span style="font-size: 0.75rem; font-family: monospace;">${empData.bank_name} - ${empData.account_number}</span>
+            </td>
+            <td style="text-align: center;">
+                <button type="button" class="btn btn-secondary" onclick="removeCreatorRow(${id})" style="font-size: 0.7rem; padding: 2px 6px; color: var(--up-maroon);">Remove</button>
+            </td>
+        `;
+        
+        // Remove empty placeholder row if it exists
+        const emptyRow = tbody.querySelector('tr td[colspan]');
+        if (emptyRow) {
+            emptyRow.parentElement.remove();
+        }
+        
+        tbody.appendChild(tr);
+        calculateRow(id);
     }
 
     // Initialize defaults on load
