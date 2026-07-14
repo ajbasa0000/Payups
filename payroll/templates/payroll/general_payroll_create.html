@@ -106,10 +106,46 @@
                     <tbody>
                         {% for item in emp_contracts %}
                         <tr class="payroll-row" data-emp-id="{{ item.employee.pk }}">
-                            <td>
+                            <td style="position: relative;">
                                 <input type="checkbox" name="included_employees" value="{{ item.employee.pk }}" checked class="include-checkbox" style="display: none;">
-                                <strong>{{ item.employee.name }}</strong>
-                                <div style="font-size: 0.7rem; color: var(--text-secondary);">TIN: {{ item.employee.tin }}</div>
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+                                    <div>
+                                        <strong>{{ item.employee.name }}</strong>
+                                        <div style="font-size: 0.7rem; color: var(--text-secondary);">TIN: {{ item.employee.tin }}</div>
+                                    </div>
+                                    <button type="button" class="btn btn-secondary" onclick="toggleDeductionConfig({{ item.employee.pk }})" style="font-size: 0.75rem; padding: 2px 4px; border: 1px solid var(--border-color); border-radius: 4px; background: white; cursor: pointer; line-height: 1;">⚙</button>
+                                </div>
+
+                                <!-- Deduction Settings Popup -->
+                                <div id="ded-config-{{ item.employee.pk }}" class="ded-config-popup" style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); padding: 12px; width: 220px; z-index: 1000; text-align: left; margin-top: 4px;">
+                                    <div style="font-weight: 700; font-size: 0.8rem; margin-bottom: 8px; color: var(--up-maroon);">⚙ Deduction Config</div>
+                                    <div style="margin-bottom: 8px;">
+                                        <label style="font-size: 0.7rem; font-weight: 700; display: block; margin-bottom: 2px; color: var(--text-secondary);">Deduction Ratio:</label>
+                                        <select class="ded-mode-select form-control" onchange="calculateRow({{ item.employee.pk }})" style="width:100%; font-size:0.75rem; padding: 2px 4px; height: 26px;">
+                                            <option value="1.0">Full (100% Deductions)</option>
+                                            <option value="0.5">Halved (50% Split)</option>
+                                            <option value="0.0">None (0% Toggled)</option>
+                                        </select>
+                                    </div>
+                                    <div style="font-size: 0.7rem; font-weight: 700; margin-bottom: 4px; color: var(--text-secondary);">Active Contributions:</div>
+                                    <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;">
+                                        <label style="display:flex; align-items:center; gap: 6px; font-weight:600; font-size: 0.75rem; margin: 0; color: var(--text-primary);">
+                                            <input type="checkbox" class="toggle-ph" checked onchange="calculateRow({{ item.employee.pk }})"> PhilHealth (5%)
+                                        </label>
+                                        <label style="display:flex; align-items:center; gap: 6px; font-weight:600; font-size: 0.75rem; margin: 0; color: var(--text-primary);">
+                                            <input type="checkbox" class="toggle-sss" checked onchange="calculateRow({{ item.employee.pk }})"> SSS
+                                        </label>
+                                        <label style="display:flex; align-items:center; gap: 6px; font-weight:600; font-size: 0.75rem; margin: 0; color: var(--text-primary);">
+                                            <input type="checkbox" class="toggle-nvat" checked onchange="calculateRow({{ item.employee.pk }})"> NVAT (3%)
+                                        </label>
+                                        <label style="display:flex; align-items:center; gap: 6px; font-weight:600; font-size: 0.75rem; margin: 0; color: var(--text-primary);">
+                                            <input type="checkbox" class="toggle-ewt" checked onchange="calculateRow({{ item.employee.pk }})"> EWT (5% / 10%)
+                                        </label>
+                                    </div>
+                                    <div style="display:flex; justify-content: flex-end;">
+                                        <button type="button" class="btn btn-primary" onclick="closeDeductionConfig({{ item.employee.pk }})" style="font-size:0.7rem; padding: 2px 8px; height: 24px;">Apply</button>
+                                    </div>
+                                </div>
                             </td>
                             <td>
                                 <input type="number" step="0.01" class="form-control cell-input salary-basis" name="salary_basis_{{ item.employee.pk }}" value="{{ item.salary_basis }}" readonly style="background-color: #f1f5f9; padding: 4px;">
@@ -171,6 +207,24 @@
 
 {% block extra_js %}
 <script>
+    function toggleDeductionConfig(id) {
+        const popup = document.getElementById(`ded-config-${id}`);
+        if (popup) {
+            // Close all other popups first
+            document.querySelectorAll('.ded-config-popup').forEach(p => {
+                if (p.id !== `ded-config-${id}`) p.style.display = 'none';
+            });
+            popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
+        }
+    }
+
+    function closeDeductionConfig(id) {
+        const popup = document.getElementById(`ded-config-${id}`);
+        if (popup) {
+            popup.style.display = 'none';
+        }
+    }
+
     // Autofill / Calculate Row defaults
     function calculateRow(id) {
         const row = document.querySelector(`.payroll-row[data-emp-id="${id}"]`);
@@ -183,25 +237,46 @@
         const gross = Math.round(((basis / 22) * days) * 100) / 100;
         row.querySelector('.gross-salary').value = gross.toFixed(2);
 
+        // Get deduction configs
+        const ratioSelect = row.querySelector('.ded-mode-select');
+        const ratio = ratioSelect ? parseFloat(ratioSelect.value) : 1.0;
+
+        const phActive = row.querySelector('.toggle-ph') ? row.querySelector('.toggle-ph').checked : true;
+        const sssActive = row.querySelector('.toggle-sss') ? row.querySelector('.toggle-sss').checked : true;
+        const nvatActive = row.querySelector('.toggle-nvat') ? row.querySelector('.toggle-nvat').checked : true;
+        const ewtActive = row.querySelector('.toggle-ewt') ? row.querySelector('.toggle-ewt').checked : true;
+
         // Philhealth default = 5% of gross
-        const philhealth = Math.round((gross * 0.05) * 100) / 100;
+        const philhealth = phActive ? Math.round((gross * 0.05 * ratio) * 100) / 100 : 0.00;
         row.querySelector('.philhealth').value = philhealth.toFixed(2);
 
         // Default EWT 5% = 5% of gross (for professional non-regular check)
         const name = row.cells[0].innerText;
-        // In screenshots Aaron and De La Cruz have 5% EWT, others have slightly custom or none
-        // Let's set EWT 5% default to 5% of gross if name contains "Basa" or "De La Cruz" or "Del Mundo" etc.
         let ewt_rate = 0.05;
         if (name.includes("Cura")) {
             ewt_rate = 0.00; // NA
         } else if (name.includes("Del Mundo") || name.includes("Sardual") || name.includes("Wadawad")) {
-            // In the screenshot Del Mundo has Gross 21,830.70 and EWT 5% = 800.37
-            // Ratio is approximately 3.666% - let's default to the exact ratio in the screenshot
             ewt_rate = 0.03666;
         }
 
-        const ewt = Math.round((gross * ewt_rate) * 100) / 100;
+        const ewt = ewtActive ? Math.round((gross * ewt_rate * ratio) * 100) / 100 : 0.00;
         row.querySelector('.ewt-5').value = ewt.toFixed(2);
+
+        // SSS check
+        if (!sssActive) {
+            row.querySelector('.sss').value = '0.00';
+        }
+
+        // NVAT check
+        if (!nvatActive) {
+            row.querySelector('.nvat').value = '0.00';
+        } else if (nvatActive && ratio !== 1.0) {
+            // Apply ratio to NVAT if it was edited
+            const currentNvat = parseFloat(row.querySelector('.nvat').value) || 0;
+            if (currentNvat > 0) {
+                row.querySelector('.nvat').value = (currentNvat * ratio).toFixed(2);
+            }
+        }
 
         updateDeductions(id);
     }
@@ -239,6 +314,14 @@
             } else {
                 row.querySelector('.no-days').value = "11.00";
             }
+            
+            // Reset modal toggles to default checked
+            const phChk = row.querySelector('.toggle-ph'); if (phChk) phChk.checked = true;
+            const sssChk = row.querySelector('.toggle-sss'); if (sssChk) sssChk.checked = true;
+            const nvatChk = row.querySelector('.toggle-nvat'); if (nvatChk) nvatChk.checked = true;
+            const ewtChk = row.querySelector('.toggle-ewt'); if (ewtChk) ewtChk.checked = true;
+            const ratioSel = row.querySelector('.ded-mode-select'); if (ratioSel) ratioSel.value = "1.0";
+
             calculateRow(id);
         });
     }
@@ -283,7 +366,13 @@
             const opt = document.getElementById(`opt-excluded-${id}`);
             if (opt) opt.remove();
             
-            // Recalculate row defaults
+            // Reset modal toggles to default checked
+            const phChk = row.querySelector('.toggle-ph'); if (phChk) phChk.checked = true;
+            const sssChk = row.querySelector('.toggle-sss'); if (sssChk) sssChk.checked = true;
+            const nvatChk = row.querySelector('.toggle-nvat'); if (nvatChk) nvatChk.checked = true;
+            const ewtChk = row.querySelector('.toggle-ewt'); if (ewtChk) ewtChk.checked = true;
+            const ratioSel = row.querySelector('.ded-mode-select'); if (ratioSel) ratioSel.value = "1.0";
+
             calculateRow(id);
             
             // Hide panel if no more excluded
@@ -332,11 +421,17 @@
         document.getElementById('masterlist-dropdown-list').style.display = 'none';
     }
 
-    // Close dropdowns on outside click
+    // Close dropdowns and popups on outside click
     document.addEventListener('click', function(e) {
         const container = document.querySelector('.custom-select-container');
         if (container && !container.contains(e.target)) {
-            document.getElementById('masterlist-dropdown-list').style.display = 'none';
+            const list = document.getElementById('masterlist-dropdown-list');
+            if (list) list.style.display = 'none';
+        }
+
+        // Close deduction settings popups if clicking outside
+        if (!e.target.closest('.ded-config-popup') && !e.target.closest('button[onclick^="toggleDeductionConfig"]')) {
+            document.querySelectorAll('.ded-config-popup').forEach(p => p.style.display = 'none');
         }
     });
 
@@ -385,10 +480,46 @@
         tr.setAttribute('data-emp-id', id);
         
         tr.innerHTML = `
-            <td>
+            <td style="position: relative;">
                 <input type="checkbox" name="included_employees" value="${id}" checked class="include-checkbox" style="display: none;">
-                <strong>${empData.name}</strong>
-                <div style="font-size: 0.7rem; color: var(--text-secondary);">TIN: ${empData.tin || ''} <span style="color:var(--up-gold); font-weight:700;">(${empData.department})</span></div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+                    <div>
+                        <strong>${empData.name}</strong>
+                        <div style="font-size: 0.7rem; color: var(--text-secondary);">TIN: ${empData.tin || ''} <span style="color:var(--up-gold); font-weight:700;">(${empData.department})</span></div>
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="toggleDeductionConfig(${id})" style="font-size: 0.75rem; padding: 2px 4px; border: 1px solid var(--border-color); border-radius: 4px; background: white; cursor: pointer; line-height: 1;">⚙</button>
+                </div>
+
+                <!-- Deduction Settings Popup -->
+                <div id="ded-config-${id}" class="ded-config-popup" style="display: none; position: absolute; top: 100%; left: 0; background: white; border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); padding: 12px; width: 220px; z-index: 1000; text-align: left; margin-top: 4px;">
+                    <div style="font-weight: 700; font-size: 0.8rem; margin-bottom: 8px; color: var(--up-maroon);">⚙ Deduction Config</div>
+                    <div style="margin-bottom: 8px;">
+                        <label style="font-size: 0.7rem; font-weight: 700; display: block; margin-bottom: 2px; color: var(--text-secondary);">Deduction Ratio:</label>
+                        <select class="ded-mode-select form-control" onchange="calculateRow(${id})" style="width:100%; font-size:0.75rem; padding: 2px 4px; height: 26px;">
+                            <option value="1.0">Full (100% Deductions)</option>
+                            <option value="0.5">Halved (50% Split)</option>
+                            <option value="0.0">None (0% Toggled)</option>
+                        </select>
+                    </div>
+                    <div style="font-size: 0.7rem; font-weight: 700; margin-bottom: 4px; color: var(--text-secondary);">Active Contributions:</div>
+                    <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;">
+                        <label style="display:flex; align-items:center; gap: 6px; font-weight:600; font-size: 0.75rem; margin: 0; color: var(--text-primary);">
+                            <input type="checkbox" class="toggle-ph" checked onchange="calculateRow(${id})"> PhilHealth (5%)
+                        </label>
+                        <label style="display:flex; align-items:center; gap: 6px; font-weight:600; font-size: 0.75rem; margin: 0; color: var(--text-primary);">
+                            <input type="checkbox" class="toggle-sss" checked onchange="calculateRow(${id})"> SSS
+                        </label>
+                        <label style="display:flex; align-items:center; gap: 6px; font-weight:600; font-size: 0.75rem; margin: 0; color: var(--text-primary);">
+                            <input type="checkbox" class="toggle-nvat" checked onchange="calculateRow(${id})"> NVAT (3%)
+                        </label>
+                        <label style="display:flex; align-items:center; gap: 6px; font-weight:600; font-size: 0.75rem; margin: 0; color: var(--text-primary);">
+                            <input type="checkbox" class="toggle-ewt" checked onchange="calculateRow(${id})"> EWT (5% / 10%)
+                        </label>
+                    </div>
+                    <div style="display:flex; justify-content: flex-end;">
+                        <button type="button" class="btn btn-primary" onclick="closeDeductionConfig(${id})" style="font-size:0.7rem; padding: 2px 8px; height: 24px;">Apply</button>
+                    </div>
+                </div>
             </td>
             <td>
                 <input type="number" step="0.01" class="form-control cell-input salary-basis" name="salary_basis_${id}" value="${empData.salary_basis.toFixed(2)}" readonly style="background-color: #f1f5f9; padding: 4px;">
