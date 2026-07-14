@@ -51,12 +51,13 @@
                 <p style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Allows inserting any active contract employee in the system into this department's payroll registry.</p>
                 <div style="display: flex; gap: 1rem; align-items: flex-end; max-width: 600px;">
                     <div style="flex: 1;">
-                        <select id="masterlist-employee-select" class="form-control" style="width: 100%; padding: 6px; font-size: 0.8rem;">
-                            <option value="">-- Select Employee (All Departments) --</option>
+                        <label for="masterlist-employee-search" style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.25rem;">Search Employee Name:</label>
+                        <input list="masterlist-employees" id="masterlist-employee-search" class="form-control" placeholder="Type to search employee..." style="width: 100%; padding: 6px; font-size: 0.8rem;">
+                        <datalist id="masterlist-employees">
                             {% for emp in all_employees %}
-                                <option value="{{ emp.id }}">{{ emp.name }} [{{ emp.get_department_display|slice:":35" }}...]</option>
+                                <option data-value="{{ emp.id }}" value="{{ emp.name }} [{{ emp.get_department_display|slice:":30" }}...]"></option>
                             {% endfor %}
-                        </select>
+                        </datalist>
                     </div>
                     <button type="button" class="btn btn-primary" onclick="insertFromMasterlist()" style="height: 34px; padding: 0 1rem; font-size: 0.8rem;">Insert Employee</button>
                 </div>
@@ -287,9 +288,22 @@
     const allContracts = {{ all_contracts_json|safe }};
 
     function insertFromMasterlist() {
-        const select = document.getElementById('masterlist-employee-select');
-        const id = parseInt(select.value);
+        const input = document.getElementById('masterlist-employee-search');
+        const val = input.value;
+        if (!val) return;
+        
+        const datalist = document.getElementById('masterlist-employees');
+        const option = Array.from(datalist.options).find(opt => opt.value === val);
+        if (!option) {
+            alert("Please select a valid employee from the search options.");
+            return;
+        }
+        
+        const id = parseInt(option.getAttribute('data-value'));
         if (!id) return;
+        
+        // Reset search input for convenience
+        input.value = '';
         
         // 1. Check if row already exists in the DOM
         let row = document.querySelector(`.payroll-row[data-emp-id="${id}"]`);

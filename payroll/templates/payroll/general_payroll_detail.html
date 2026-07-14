@@ -40,26 +40,40 @@
             👤 Customize Payee Group / Employee List
         </h3>
         
-        <form method="POST" action="" style="display: flex; gap: 1rem; align-items: flex-end; max-width: 600px;">
+        <form method="POST" action="" onsubmit="return validateAndSubmitDetailForm();" style="display: flex; gap: 1rem; align-items: flex-end; max-width: 600px;">
             {% csrf_token %}
             <input type="hidden" name="action" value="add_employee">
+            <input type="hidden" name="employee_id" id="employee_id_hidden">
             
             <div style="flex: 1;">
-                <label for="employee_id" style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.25rem;">Select Employee to Insert:</label>
-                <select name="employee_id" id="employee_id" class="form-control" style="width: 100%; padding: 6px;" required>
-                    <option value="">-- Select from Masterlist --</option>
+                <label for="employee_search_input" style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.25rem;">Search and Select Employee:</label>
+                <input list="available-employees-list" id="employee_search_input" class="form-control" placeholder="Type to search employee..." style="width: 100%; padding: 6px; font-size: 0.8rem;" required>
+                <datalist id="available-employees-list">
                     {% for emp in available_employees %}
-                        <option value="{{ emp.id }}">{{ emp.name }} (TIN: {{ emp.tin|default:"N/A" }})</option>
-                    {% empty %}
-                        <option value="" disabled>All department employees are already added.</option>
+                        <option data-value="{{ emp.id }}" value="{{ emp.name }} [TIN: {{ emp.tin|default:'N/A' }}] ({{ emp.get_department_display }})"></option>
                     {% endfor %}
-                </select>
+                </datalist>
             </div>
             
             <button type="submit" class="btn btn-primary" style="height: 38px;">Insert Employee</button>
         </form>
     </div>
     {% endif %}
+
+    <script>
+        function validateAndSubmitDetailForm() {
+            const input = document.getElementById('employee_search_input');
+            const val = input.value;
+            const datalist = document.getElementById('available-employees-list');
+            const option = Array.from(datalist.options).find(opt => opt.value === val);
+            if (!option) {
+                alert("Please select a valid employee from the search options.");
+                return false;
+            }
+            document.getElementById('employee_id_hidden').value = option.getAttribute('data-value');
+            return true;
+        }
+    </script>
 
     <!-- The Spreadsheet Print Layout -->
     <div class="paper-document" style="font-family: Arial, sans-serif; font-size: 10px; padding: 2rem; border: 1px solid #000; box-shadow: var(--shadow-lg); background-color: #fff;">

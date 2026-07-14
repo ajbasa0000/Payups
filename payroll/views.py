@@ -948,7 +948,7 @@ def general_payroll_detail(request, pk):
     
     # Filter out employees already in this payroll
     existing_emp_ids = items.values_list('employee_id', flat=True)
-    available_employees = Employee.objects.filter(department=payroll.department).exclude(id__in=existing_emp_ids).order_by('name')
+    available_employees = Employee.objects.all().exclude(id__in=existing_emp_ids).order_by('name')
     
     # Calculate totals
     totals = {
