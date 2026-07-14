@@ -17,6 +17,10 @@
             padding: 0 !important;
         }
     }
+    .dropdown-item:hover {
+        background-color: var(--up-maroon-light) !important;
+        color: var(--up-maroon) !important;
+    }
 </style>
 
 <div style="display: flex; flex-direction: column; gap: 1.5rem;">
@@ -45,14 +49,21 @@
             <input type="hidden" name="action" value="add_employee">
             <input type="hidden" name="employee_id" id="employee_id_hidden">
             
-            <div style="flex: 1;">
+            <div style="flex: 1; position: relative;" class="custom-select-container">
                 <label for="employee_search_input" style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.25rem;">Search and Select Employee:</label>
-                <input list="available-employees-list" id="employee_search_input" class="form-control" placeholder="Type to search employee..." style="width: 100%; padding: 6px; font-size: 0.8rem;" required>
-                <datalist id="available-employees-list">
+                <input type="text" id="employee_search_input" autocomplete="off" class="form-control" placeholder="Type name to search..." oninput="filterDetailDropdown()" onfocus="showDetailDropdown()" style="width: 100%; padding: 8px; font-size: 0.85rem;" required>
+                
+                <div id="detail-dropdown-list" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border-color); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); max-height: 200px; overflow-y: auto; z-index: 1000; margin-top: 4px;">
                     {% for emp in available_employees %}
-                        <option data-value="{{ emp.id }}" value="{{ emp.name }} [TIN: {{ emp.tin|default:'N/A' }}] ({{ emp.get_department_display }})"></option>
+                        <div class="dropdown-item" data-value="{{ emp.id }}" data-name="{{ emp.name }}" data-search="{{ emp.name|lower }} {{ emp.get_department_display|lower }}" onclick="selectDetailEmployee({{ emp.id }}, '{{ emp.name|escapejs }}', '{{ emp.get_department_display|escapejs }}')" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--bg-slate); transition: background-color 0.2s;">
+                            <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary);">{{ emp.name }}</div>
+                            <div style="font-size: 0.7rem; color: var(--text-secondary);">{{ emp.get_department_display }}</div>
+                        </div>
                     {% endfor %}
-                </datalist>
+                    <div id="detail-no-results" style="display: none; padding: 12px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">
+                        No matching employees found.
+                    </div>
+                </div>
             </div>
             
             <button type="submit" class="btn btn-primary" style="height: 38px;">Insert Employee</button>
@@ -61,16 +72,57 @@
     {% endif %}
 
     <script>
-        function validateAndSubmitDetailForm() {
+        function showDetailDropdown() {
+            document.getElementById('detail-dropdown-list').style.display = 'block';
+        }
+
+        function filterDetailDropdown() {
             const input = document.getElementById('employee_search_input');
-            const val = input.value;
-            const datalist = document.getElementById('available-employees-list');
-            const option = Array.from(datalist.options).find(opt => opt.value === val);
-            if (!option) {
-                alert("Please select a valid employee from the search options.");
+            const filter = input.value.toLowerCase();
+            const dropdownList = document.getElementById('detail-dropdown-list');
+            const items = dropdownList.getElementsByClassName('dropdown-item');
+            let visibleCount = 0;
+
+            for (let i = 0; i < items.length; i++) {
+                const searchTxt = items[i].getAttribute('data-search') || '';
+                if (searchTxt.includes(filter)) {
+                    items[i].style.display = 'block';
+                    visibleCount++;
+                } else {
+                    items[i].style.display = 'none';
+                }
+            }
+
+            const noResults = document.getElementById('detail-no-results');
+            if (visibleCount === 0) {
+                noResults.style.display = 'block';
+            } else {
+                noResults.style.display = 'none';
+            }
+            
+            showDetailDropdown();
+        }
+
+        function selectDetailEmployee(id, name, department) {
+            document.getElementById('employee_id_hidden').value = id;
+            document.getElementById('employee_search_input').value = `${name} [${department}]`;
+            document.getElementById('detail-dropdown-list').style.display = 'none';
+        }
+
+        // Close dropdowns on outside click
+        document.addEventListener('click', function(e) {
+            const container = document.querySelector('.custom-select-container');
+            if (container && !container.contains(e.target)) {
+                document.getElementById('detail-dropdown-list').style.display = 'none';
+            }
+        });
+
+        function validateAndSubmitDetailForm() {
+            const selectedId = document.getElementById('employee_id_hidden').value;
+            if (!selectedId) {
+                alert("Please search and select a valid employee from the dropdown list first.");
                 return false;
             }
-            document.getElementById('employee_id_hidden').value = option.getAttribute('data-value');
             return true;
         }
     </script>
