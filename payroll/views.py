@@ -829,7 +829,10 @@ def general_payroll_create(request):
         )
 
         # Loop through employees and grab inputs
+        included_ids = request.POST.getlist('included_employees')
         for emp in employees:
+            if str(emp.pk) not in included_ids:
+                continue
             salary_basis = request.POST.get(f'salary_basis_{emp.pk}', 0.00)
             no_of_days = request.POST.get(f'no_of_days_{emp.pk}', 11.00)
             gross_salary = request.POST.get(f'gross_salary_{emp.pk}', 0.00)

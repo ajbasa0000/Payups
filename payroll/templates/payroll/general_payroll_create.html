@@ -39,7 +39,23 @@
             </div>
 
             <!-- Spreadsheet Grid -->
-            <h4 style="margin-bottom: 0.75rem; font-weight: 700; color: var(--text-primary);">Employee Payroll Matrix</h4>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <h4 style="margin-bottom: 0; font-weight: 700; color: var(--text-primary);">Employee Payroll Matrix</h4>
+            </div>
+
+            <!-- Add Employee Back Panel -->
+            <div id="add-employee-panel" style="display: none; margin-bottom: 1.5rem; background-color: var(--up-maroon-light); padding: 1rem; border-radius: var(--radius-md); border: 1px dashed var(--up-maroon);">
+                <div style="display: flex; gap: 1rem; align-items: flex-end;">
+                    <div style="flex: 1; max-width: 400px;">
+                        <label for="add-employee-select" style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.25rem;">Insert Excluded Employee:</label>
+                        <select id="add-employee-select" class="form-control" style="width: 100%; padding: 6px; font-size: 0.8rem;">
+                            <option value="">-- Select from Excluded --</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="addCreatorRow()" style="height: 32px; padding: 0 1rem; font-size: 0.8rem;">Add Back to Payroll</button>
+                </div>
+            </div>
+
             <div class="table-responsive" style="margin-bottom: 2rem;">
                 <table class="custom-table" style="width: 100%; font-size: 0.8rem;">
                     <thead>
@@ -56,12 +72,14 @@
                             <th style="width: 100px;">Total Ded.</th>
                             <th style="width: 110px;">Net Salary</th>
                             <th>Bank Account</th>
+                            <th style="width: 80px; text-align: center;">Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in emp_contracts %}
                         <tr class="payroll-row" data-emp-id="{{ item.employee.pk }}">
                             <td>
+                                <input type="checkbox" name="included_employees" value="{{ item.employee.pk }}" checked class="include-checkbox" style="display: none;">
                                 <strong>{{ item.employee.name }}</strong>
                                 <div style="font-size: 0.7rem; color: var(--text-secondary);">TIN: {{ item.employee.tin }}</div>
                             </td>
@@ -98,10 +116,13 @@
                             <td>
                                 <span style="font-size: 0.75rem; font-family: monospace;">{{ item.employee.bank_name }} - {{ item.employee.account_number }}</span>
                             </td>
+                            <td style="text-align: center;">
+                                <button type="button" class="btn btn-secondary" onclick="removeCreatorRow({{ item.employee.pk }})" style="font-size: 0.7rem; padding: 2px 6px; color: var(--up-maroon);">Remove</button>
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="12" style="text-align: center; color: var(--text-muted); padding: 2rem;">No active employee contracts found for your department.</td>
+                            <td colspan="13" style="text-align: center; color: var(--text-muted); padding: 2rem;">No active employee contracts found for your department.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -192,6 +213,56 @@
             }
             calculateRow(id);
         });
+    }
+
+    function removeCreatorRow(id) {
+        const row = document.querySelector(`.payroll-row[data-emp-id="${id}"]`);
+        if (row) {
+            row.style.display = 'none';
+            const checkbox = row.querySelector('.include-checkbox');
+            if (checkbox) checkbox.checked = false;
+            
+            // Add to the dropdown of excluded employees
+            const name = row.cells[0].innerText.split("\n")[0].trim();
+            const select = document.getElementById('add-employee-select');
+            
+            // Check if already in select to prevent duplicates
+            if (!document.getElementById(`opt-excluded-${id}`)) {
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.text = name;
+                opt.id = `opt-excluded-${id}`;
+                select.appendChild(opt);
+            }
+            
+            // Show the add panel
+            document.getElementById('add-employee-panel').style.display = 'block';
+        }
+    }
+
+    function addCreatorRow() {
+        const select = document.getElementById('add-employee-select');
+        const id = select.value;
+        if (!id) return;
+        
+        const row = document.querySelector(`.payroll-row[data-emp-id="${id}"]`);
+        if (row) {
+            row.style.display = '';
+            const checkbox = row.querySelector('.include-checkbox');
+            if (checkbox) checkbox.checked = true;
+            
+            // Remove from select dropdown
+            const opt = document.getElementById(`opt-excluded-${id}`);
+            if (opt) opt.remove();
+            
+            // Recalculate row defaults
+            calculateRow(id);
+            
+            // Hide panel if no more excluded
+            if (select.options.length <= 1) {
+                document.getElementById('add-employee-panel').style.display = 'none';
+            }
+        }
     }
 
     // Initialize defaults on load
