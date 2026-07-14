@@ -265,3 +265,17 @@ class GeneralPayrollItem(models.Model):
     def __str__(self):
         return f"Payroll item for {self.employee.name} in {self.general_payroll.id}"
 
+
+class OnboardingMemo(models.Model):
+    memo_number = models.CharField(max_length=100, unique=True, help_text="e.g. Memo No. ACR 26-100")
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, help_text="A short summary of the memo's contents")
+    file = models.FileField(upload_to='memos/', help_text="Upload the PDF document")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return f"{self.memo_number} - {self.title}"
+

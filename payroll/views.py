@@ -17,7 +17,7 @@ from django.core.paginator import Paginator
 from .models import (
     Role, Employee, Contract, ObligationRequest, DisbursementVoucher, 
     DVPayeeDetail, WorkflowLog, ObRStatus, DVStatus, ContractType,
-    GeneralPayroll, GeneralPayrollItem, GeneralPayrollStatus, Department
+    GeneralPayroll, GeneralPayrollItem, GeneralPayrollStatus, Department, OnboardingMemo
 )
 
 @login_required
@@ -1183,7 +1183,8 @@ def employee_delete(request, pk):
 
 @login_required
 def memos_viewer(request):
-    return render(request, 'payroll/memos_viewer.html')
+    memos = OnboardingMemo.objects.all().order_by('-uploaded_at')
+    return render(request, 'payroll/memos_viewer.html', {'memos': memos})
 
 @login_required
 def generate_contract_docx(request, employee_id):

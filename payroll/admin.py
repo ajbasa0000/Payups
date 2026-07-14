@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     UserProfile, Employee, Contract, ObligationRequest, DisbursementVoucher,
-    DVPayeeDetail, WorkflowLog, GeneralPayroll, GeneralPayrollItem
+    DVPayeeDetail, WorkflowLog, GeneralPayroll, GeneralPayrollItem, OnboardingMemo
 )
 
 @admin.register(UserProfile)
@@ -55,3 +55,8 @@ class GeneralPayrollAdmin(admin.ModelAdmin):
 class GeneralPayrollItemAdmin(admin.ModelAdmin):
     list_display = ('general_payroll', 'employee', 'salary_basis', 'no_of_days', 'gross_salary', 'net_salary')
     search_fields = ('employee__name',)
+
+@admin.register(OnboardingMemo)
+class OnboardingMemoAdmin(admin.ModelAdmin):
+    list_display = ('memo_number', 'title', 'uploaded_at')
+    search_fields = ('memo_number', 'title')
