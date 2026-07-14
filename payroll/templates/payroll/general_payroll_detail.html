@@ -39,7 +39,7 @@
 
     {% if request.user.profile.role == 'UNIT_AO' or request.user.profile.role == 'UNIT_HEAD' or request.user.is_superuser %}
     <!-- Employee Management Panel -->
-    <div class="container-card no-print" style="padding: 1.25rem 1.5rem; border: 1px solid var(--border-color); background-color: #ffffff;">
+    <div class="container-card no-print" style="padding: 1.25rem 1.5rem; border: 1px solid var(--border-color); background-color: #ffffff; overflow: visible !important;">
         <h3 style="font-size: 1rem; font-weight: 700; color: var(--up-maroon); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
             👤 Customize Payee Group / Employee List
         </h3>
