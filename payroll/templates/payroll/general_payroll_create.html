@@ -88,7 +88,7 @@
                 <table class="custom-table" style="width: 100%; font-size: 0.8rem;">
                     <thead>
                         <tr style="background-color: var(--bg-slate);">
-                            <th>Employee Name</th>
+                            <th style="min-width: 220px; width: 220px;">Employee Name</th>
                             <th style="width: 100px;">Salary Basis</th>
                             <th style="width: 80px;">No. of Days</th>
                             <th style="width: 100px;">Gross Salary</th>
@@ -106,7 +106,7 @@
                     <tbody>
                         {% for item in emp_contracts %}
                         <tr class="payroll-row" data-emp-id="{{ item.employee.pk }}">
-                            <td style="position: relative;">
+                            <td style="position: relative; min-width: 220px; width: 220px;">
                                 <input type="checkbox" name="included_employees" value="{{ item.employee.pk }}" checked class="include-checkbox" style="display: none;">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
                                     <div>
@@ -480,7 +480,7 @@
         tr.setAttribute('data-emp-id', id);
         
         tr.innerHTML = `
-            <td style="position: relative;">
+            <td style="position: relative; min-width: 220px; width: 220px;">
                 <input type="checkbox" name="included_employees" value="${id}" checked class="include-checkbox" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
                     <div>
